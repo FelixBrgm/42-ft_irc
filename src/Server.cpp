@@ -36,8 +36,8 @@ void Server::start()
 
 	// Alloc the socket to be reused - so that multiple connection can be accepted
  	int opt = 1;
-    setsockopt(_listenerfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
-
+    setsockopt(_listenerfd, SOL_SOCKET, SO_NOSIGPIPE & SO_REUSEADDR, &opt, sizeof(opt));
+// setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 	// Set attributes of the socket
 	_listener_socket_addr.sin_port = htons(_port);
 	_listener_socket_addr.sin_family = AF_INET;
@@ -118,6 +118,6 @@ void Server::_handle(std::string text) {
 
 	if (text.length() == 0) return;
 	std::cout << "TEXT: " << text ;
-	write(_fds[_nfds-1].fd, text.c_str(), 5);
+	write(_fds[_nfds-1].fd, text.c_str(), text.length());
 
 }
