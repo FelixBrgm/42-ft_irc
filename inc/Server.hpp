@@ -15,7 +15,7 @@ private:
 	std::string				_password;
 	struct pollfd			_fds[MAX_CLIENTS_POLLFDS];
 	unsigned short			_nfds;
-	struct sockaddr_in		_listener_socket_addr;		
+	struct sockaddr_in		_listener_socket_addr;
 	int						_listenerfd;
 public:
 	Server(int port, std::string password);
@@ -24,7 +24,8 @@ public:
 	void	loop();
 
 private:
-	void _accept();
+	void	_accept();
+	void	_handle(std::string text);
 
 };
 
