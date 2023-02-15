@@ -36,7 +36,7 @@ void Server::start()
 
 	// Alloc the socket to be reused - so that multiple connection can be accepted
  	int opt = 1;
-    setsockopt(_listenerfd, SOL_SOCKET, SO_NOSIGPIPE & SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(_listenerfd, SOL_SOCKET, SO_NOSIGPIPE | SO_REUSEADDR, &opt, sizeof(opt));
 // setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 	// Set attributes of the socket
 	_listener_socket_addr.sin_port = htons(_port);
@@ -67,8 +67,8 @@ void Server::start()
 
 void Server::loop()
 {
-	char buf[1024];
-	memset(buf, 0, 1024);
+	// 512 is max in irc. \r\n included
+	char buf[MAX_MESSAGE_LENGHT];
 	while (true)
 	{
 		int	socket_change_count = poll(_fds, _nfds, 0);
@@ -81,19 +81,27 @@ void Server::loop()
 
 			if (_fds[i].revents == 0)
 				continue;
-			
-			if (!(_fds[i].revents & POLLIN))
-				throw std::runtime_error("Failed To Recognize Event Returned By Poll (Should be POLLIN)");
+			// event happened on filedescriptor
+			if (_fds[i].revents & POLLIN)
+				;// handle 
+			else if ((_fds[i].revents & POLLOUT))
+				;//
+			else
+				throw std::runtime_error("Failed To Recognize Event Returned By Poll");
 
 			if (_fds[i].fd == _listenerfd)
 				_accept();
 			else
 			{
-				recv(_fds[i].fd,buf, 1024, 0);
-				_handle(std::string(buf));
+				std::size_t received_bytes = recv(_fds[i].fd, buf, 512, 0);
+				if (received_bytes == -1)
+					throw std::runtime_error("Failed To Read Incoming Message");
+
+				_handle(_fds[i].fd, std::string(buf));
 				memset(buf, 0, 1024);
 			}
 		}
+		//send	
 	}
 }
 
@@ -110,14 +118,43 @@ void Server::_accept()
 
 	_fds[_nfds].fd = new_socket_fd;
 	_fds[_nfds].events = POLLIN;
-	_nfds++;
+
+	_fd_to_unregistered_clients[new_socket_fd] = Client(new_socket_fd);
+
 	std::cout << "accepted new client number: " << _nfds << std::endl;
+	_nfds++;
 }
 
-void Server::_handle(std::string text) {
+void Server::_handle(int fd, std::string buffer) {
 
-	if (text.length() == 0) return;
-	std::cout << "TEXT: " << text ;
-	write(_fds[_nfds-1].fd, text.c_str(), text.length());
+	if (buffer.length() == 0) return;
 
+	// When user data is not set in the client
+	if (_fd_to_unregistered_clients.count(fd) == 1)
+	{
+		Client unregistered_client = _fd_to_unregistered_clients[fd];
+
+		unregistered_client.append_buffer(buffer);
+
+		if (unregistered_client.is_incoming_msg_complete())
+		{
+			// Parse the in_buf of unregistered_client into the nickname, ...
+			// parse message (check if the message is bigger then 512)
+			// add unregistered_client to username_to_client
+			// add username to fd_to_username
+			// delete unregistered_client form _ft_to_uregistered_clients
+		}
+		return;
+	}
+
+	// When user data is set in client
+	std::string username = _fd_to_username[fd];
+	Client cur_client = _username_to_client[username];
+
+	cur_client.append_buffer(buffer);
+	if (cur_client.is_incoming_msg_complete())
+	{
+		// parse message (check if the message is bigger then 512)
+		// send message
+	}
 }
