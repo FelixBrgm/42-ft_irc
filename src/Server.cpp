@@ -158,3 +158,11 @@ void Server::_handle(int fd, std::string buffer) {
 		// send message
 	}
 }
+
+void Server::_parse(std::string message)
+{
+	// Check if the first char is a /
+	// check if the thing afterwards is a command
+	// have a if for each command
+	if ()
+}

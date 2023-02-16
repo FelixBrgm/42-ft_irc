@@ -20,10 +20,9 @@ class Client
 		Client& operator= (const Client& other);
 
 		void set_user_data(std::string nickname, std::string username, std::string realname);
-
 		void append_buffer(std::string buffer);
-
-		bool is_incoming_msg_complete() const;		
+		bool is_incoming_msg_complete() const;
+		
 };
 
 #endif

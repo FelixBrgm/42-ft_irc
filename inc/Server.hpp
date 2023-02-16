@@ -35,8 +35,9 @@ private:
 	void	_accept();
 	void	_handle(int fd, std::string buffer);
 
+	void	_parse(std::string message);
+
+	// Actions on the server
 };
-
-
 
 #endif

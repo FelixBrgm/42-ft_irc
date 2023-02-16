@@ -31,11 +31,8 @@ int main(int argc, char* argv[])
 	if (!valid_arguments(argc, argv))
 		return 1;	
 
-
 	Server a(std::stoi(std::string(argv[1])), std::string(argv[2]));
-
 	a.start();
-
 
 	return 0;
 }
