@@ -36,16 +36,15 @@ void Server::start()
 
 	// Alloc the socket to be reused - so that multiple connection can be accepted
  	int opt = 1;
-    setsockopt(_listenerfd, SOL_SOCKET, SO_NOSIGPIPE | SO_REUSEADDR, &opt, sizeof(opt));
-// setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+	// ! ADD SIGPIPE I CODE ON LINUX SO I REMOVED IT !
+    setsockopt(_listenerfd, SOL_SOCKET,  SO_REUSEADDR, &opt, sizeof(opt));
 	// Set attributes of the socket
 	_listener_socket_addr.sin_port = htons(_port);
 	_listener_socket_addr.sin_family = AF_INET;
-	_listener_socket_addr.sin_len = sizeof(_listener_socket_addr);
 	_listener_socket_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
 	// Bind the listening socket to the port configured
-	if (bind(_listenerfd, reinterpret_cast<struct sockaddr*>(&_listener_socket_addr), _listener_socket_addr.sin_len) < 0)
+	if (bind(_listenerfd, reinterpret_cast<struct sockaddr*>(&_listener_socket_addr), sizeof(_listener_socket_addr)) < 0)
 		throw std::runtime_error("Failed To Bind Socket To Port");
 	
 	// Sets the filedescriptor of the socket to non blocking
@@ -58,7 +57,7 @@ void Server::start()
 
 	// First fd in the array is the listener
 	_fds[_nfds].fd = _listenerfd;
-	_fds[_nfds].events = POLLIN;
+	_fds[_nfds].events = POLLIN & POLLOUT;
 	_nfds++;
 
 	loop();
@@ -78,83 +77,79 @@ void Server::loop()
 
 		for (int i = 0; i < _nfds; i++)
 		{
-
 			if (_fds[i].revents == 0)
 				continue;
-			// event happened on filedescriptor
-			if (_fds[i].revents & POLLIN)
-				;// handle 
-			else if ((_fds[i].revents & POLLOUT))
-				;//
-			else
-				throw std::runtime_error("Failed To Recognize Event Returned By Poll");
+			if (_fds[i].revents & POLLERR)
+				throw std::runtime_error("An Error Has Occured On A Filedescriptor");
 
-			if (_fds[i].fd == _listenerfd)
-				_accept();
+			if (_fds[i].fd == _listenerfd && _fds[i].revents & POLLIN)
+				_accept_new_connection();
 			else
 			{
-				std::size_t received_bytes = recv(_fds[i].fd, buf, 512, 0);
-				if (received_bytes == -1)
-					throw std::runtime_error("Failed To Read Incoming Message");
-
-				_handle(_fds[i].fd, std::string(buf));
-				memset(buf, 0, 1024);
+				if (_fds[i].revents & POLLIN)
+					_receive_incoming_data(_fds[i].fd);
+				else if ((_fds[i].revents & POLLOUT))
+					_fd_to_client[_fds[i].fd].clear_out_buffer();
 			}
+
 		}
 		//send	
 	}
 }
 
-void Server::_accept()
+void Server::_accept_new_connection()
 {
-	int new_socket_fd = accept(_fds[0].fd, NULL, NULL);
-	if (new_socket_fd == EAGAIN || new_socket_fd == EWOULDBLOCK)
-		;
-	else if (new_socket_fd < 0)
-		throw std::runtime_error("Failed To Open Socket");
-	
-	if (fcntl(new_socket_fd, F_SETFL, O_NONBLOCK) < 0)
-		throw std::runtime_error("Failed To Set Socket To Non-Blocking");
+	while (true)
+	{
+		int new_socket_fd = accept(_fds[0].fd, NULL, NULL);
+		if (new_socket_fd < 0)
+		{
+			if (errno != EAGAIN && errno != EWOULDBLOCK)
+				throw std::runtime_error("Failed To Open Socket");
+			else
+				return ;
+		}
 
-	_fds[_nfds].fd = new_socket_fd;
-	_fds[_nfds].events = POLLIN;
+		if (fcntl(new_socket_fd, F_SETFL, O_NONBLOCK) < 0)
+			throw std::runtime_error("Failed To Set Socket To Non-Blocking");
 
-	_fd_to_unregistered_clients[new_socket_fd] = Client(new_socket_fd);
+		_fds[_nfds].fd = new_socket_fd;
+		_fds[_nfds].events = POLLIN & POLLOUT;
 
-	std::cout << "accepted new client number: " << _nfds << std::endl;
-	_nfds++;
+		_fd_to_client[new_socket_fd] = Client(new_socket_fd);
+
+		std::cout << "Accepted Client: " << _nfds << std::endl;
+
+		_nfds++;
+	}
 }
 
-void Server::_handle(int fd, std::string buffer) {
+void	Server::_receive_incoming_data(int fd)
+{
+	char buf[MAX_MESSAGE_LENGHT] = {0};
+	std::size_t received_bytes = recv(fd, buf, MAX_MESSAGE_LENGHT, 0);
+	if (received_bytes == -1)
+		throw std::runtime_error("Failed To Read Incoming Message");
+	
+	Client	client = _fd_to_client[fd];
+	client.append_in_buffer(buf);
 
-	if (buffer.length() == 0) return;
-
-	// When user data is not set in the client
-	if (_fd_to_unregistered_clients.count(fd) == 1)
+	if (!client.is_registered())
 	{
-		Client unregistered_client = _fd_to_unregistered_clients[fd];
-
-		unregistered_client.append_buffer(buffer);
-
-		if (unregistered_client.is_incoming_msg_complete())
-		{
-			// Parse the in_buf of unregistered_client into the nickname, ...
-			// parse message (check if the message is bigger then 512)
-			// add unregistered_client to username_to_client
-			// add username to fd_to_username
-			// delete unregistered_client form _ft_to_uregistered_clients
-		}
-		return;
-	}
-
-	// When user data is set in client
-	std::string username = _fd_to_username[fd];
-	Client cur_client = _username_to_client[username];
-
-	cur_client.append_buffer(buffer);
-	if (cur_client.is_incoming_msg_complete())
-	{
+		// Parse the in_buf of unregistered_client into the nickname, ...
 		// parse message (check if the message is bigger then 512)
-		// send message
+		// add unregistered_client to username_to_client
+		// add username to fd_to_username
+		// delete unregistered_client form _ft_to_uregistered_clients
+		return ;
 	}
+
+	if (client.is_incoming_msg_complete())
+	{
+		// parse message
+		// write output to out buffer of client
+		// remove in buffer until \r\n
+	}
+	else
+		;// (check if the message is bigger then 512) -> send error
 }
