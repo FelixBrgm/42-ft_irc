@@ -58,6 +58,6 @@ all: test
 #         rm -rf minirt.dSYM
 
 test:
-	clear && g++ src/main.cpp src/Server.cpp src/Client.cpp src/Channel.cpp && echo "STARTED" && ./a.out 4000 a
+	g++ src/main.cpp src/Server.cpp src/Client.cpp src/Channel.cpp && echo "STARTED" && ./a.out 4000 a
 
 # re: fclean al
