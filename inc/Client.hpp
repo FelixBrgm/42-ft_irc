@@ -24,7 +24,6 @@ class Client
 		ClientStatus								_registration_status;
 
 		std::map<std::string, Channel*>				_joined_channels;	
-		
 		Channel*									_active_channel;
 
 		std::string									_in_buffer;
@@ -32,6 +31,7 @@ class Client
 		std::string									_out_buffer;
 
 	public:
+		Client(); // just for map default creation
 		Client(int fd);
 		~Client();
 
