@@ -1,0 +1,6 @@
+#ifndef CONSTANTS_HPP
+#define CONSTANTS_HPP
+
+#define MAX_MESSAGE_LENGHT  512
+
+#endif

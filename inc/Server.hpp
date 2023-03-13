@@ -1,39 +1,55 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 #include <string>
-#include <poll.h>
 #include <map>
+#include <vector>
 
+#include <poll.h>
 #include <arpa/inet.h>
 
-#define MAX_CLIENTS_POLLFDS 1024
-#define MAX_MESSAGE_LENGHT  512
 #include "../inc/Client.hpp"
+#include "../inc/Channel.hpp"
+
+#include "Constants.hpp"
 
 class Server
 {
-private:
-	int																	_port;
-	std::string															_password;
-	struct pollfd														_fds[MAX_CLIENTS_POLLFDS];
-	unsigned short														_nfds;
-	struct sockaddr_in													_listener_socket_addr;
-	int																	_listenerfd;
-	// key is name (must be unique), value is buffer to be sent
-	std::map<int, Client>												_fd_to_unregistered_clients;					
-	std::map<int, std::string>											_fd_to_username;
-	std::map<std::string, std::vector<std::pair<std::string, bool> > >	_channels_to_usernames;
-	std::map<std::string, Client>										_username_to_client;
+	private:
+		int																	_port;
+		std::string															_password;
+		std::string															_server_name;
+		std::vector<struct pollfd>											_pollfds;
+		unsigned short														_nfds;
+		int																	_listenerfd;
+	
+		std::map<int, Client>												_fd_to_client;					
+		std::map<std::string, Channel>										_name_to_channel;
+	
+	public:
+		Server(int port, std::string password, std::string server_name = std::string("ft_irc"));
+		~Server();
+	
 
-public:
-	Server(int port, std::string password);
-	~Server();
-	void	start();
-	void	loop();
+		void	start();
+		void	_event_loop();
+	
+	private:
+		void	_accept_new_connection();
+		void	_parse_incoming_data(int fd);
 
-private:
-	void	_accept();
-	void	_handle(int fd, std::string buffer);
+
+		// helpers for commands
+		bool	_client_username_already_exists();
+
+
+		// error messages
+
+
+
+		// commands
+		void	_cmd_pass(const Client& client);
+		void	_cmd_nick(const Client& client);
+		void	_cmd_user(const Client& client);
 
 };
 
