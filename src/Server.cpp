@@ -111,6 +111,19 @@ void Server::_event_loop()
 					// send to client
 				}
 			}
+			
+
+			//send
+		}
+
+		for (int i = 0; i < _nfds; i++)
+		{
+			Client& client = _fd_to_client[_pollfds[i].fd];
+
+			if (!client.is_response_complete())
+				continue;
+			
+			client.send_out_buffer();
 		}
 	}
 }
@@ -195,6 +208,7 @@ void	Server::_parse_incoming_data(int fd)
 	std::string command = client_message.substr(0, client_message.find(std::string(" ")));
 
 	std::vector<std::string> params;
+	
 	std::string temp = client_message.substr(client_message.find(std::string(" ")));
 	temp = temp.substr(1);
 	while (temp.length() && temp[0] != ':')
@@ -218,14 +232,14 @@ void	Server::_parse_incoming_data(int fd)
 	}
 
 	if (command == std::string("PASS"))
-		;
-	if (command == std::string("NICK"))
-		;
-	if (command == std::string("USER"))
-		;
+		_cmd_pass(&client, params);
+	else if (command == std::string("NICK"))
+		_cmd_nick(&client, params);
+	else if (command == std::string("USER"))
+		_cmd_user(&client, params);
 	else
 	{
-		;
+		;// send error 421
 	}
 
 

@@ -19,7 +19,6 @@ class Client
 		std::string									_nickname;
 		std::string									_username;
 		std::string									_realname;
-		std::string									_hostname;
 
 		ClientStatus								_registration_status;
 
@@ -52,13 +51,14 @@ class Client
 		std::string get_in_buffer();
 
 
+		bool is_response_complete() const;
 
 		void clear_in_buffer();
 		void clear_out_buffer();
 
 		void disconnect();
 
-
+		void send_out_buffer();
 };
 
 #endif
