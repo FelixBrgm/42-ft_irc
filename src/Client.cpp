@@ -1,8 +1,9 @@
 #include "../inc/Client.hpp"
 #include <unistd.h>
 #include <sys/socket.h>
+#include <errno.h>
 
-Client::Client() {}
+Client::Client()  {}
 
 Client::Client(int fd) : _fd(fd) {}
 
@@ -22,7 +23,7 @@ Client& Client::operator= (const Client& other)
 		_nickname = other._nickname;
 		_username = other._username;
 		_realname = other._realname;
-		_hostname = other._hostname;
+
 
 		_registration_status = other._registration_status;
 
@@ -85,17 +86,45 @@ void Client::clear_out_buffer()
 
 void Client::disconnect()
 {
-	if (_joined_channels.size())
-	{
-		// send that im disconnecting
-		for (std::map<std::string, Channel*>::iterator it = _joined_channels.begin(); it != _joined_channels.end(); it++)
-		{
-			
-		}
-	}
+	
 }
 
 std::string Client::get_in_buffer()
 {
 	return _in_buffer;
+}
+
+
+bool Client::is_response_complete() const { return _response_buffer.length() != 0; };
+
+
+void Client::send_out_buffer()
+{
+
+		int ret = send(_fd, NULL, 0, MSG_DONTWAIT | SO_NOSIGPIPE);
+		if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+		{
+		    // The writing operation would block
+			return;
+		}
+		
+		if (ret == -1)
+		{
+		    // Handle error -> disconnect client
+			return ;
+		}
+
+
+	_out_buffer = _response_buffer;
+	_response_buffer.clear();
+
+	int bytes_sent = send(_fd, _out_buffer.c_str(), _out_buffer.length(), SO_NOSIGPIPE);
+	
+	if (bytes_sent == -1)
+	{
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
+		{
+			// real send error -> dc client;
+		}
+	}
 }

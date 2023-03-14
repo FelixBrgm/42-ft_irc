@@ -7,10 +7,10 @@
 class Channel
 {
     private:
-		std::string				_name;
-		bool					_is_joinable;
-        std::vector<Client*>	_channel_clients;
-        std::vector<Client*>	_channel_operators;
+		std::string					_name;
+		bool						_is_joinable;
+        std::vector<Client*>		_channel_clients;
+        std::vector<std::string>	_channel_operators;
 
     public:
         Channel();
@@ -18,5 +18,6 @@ class Channel
 
 		void	remove_client(Client *client);		
 };
+
 
 #endif

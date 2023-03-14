@@ -27,7 +27,7 @@ class Server
 	
 		std::map<int, Client>												_fd_to_client;					
 		std::map<std::string, Channel>										_name_to_channel;
-		std::vector<std::string>											_taken_username;
+		std::vector<std::string>											_taken_usernames;
 
 
 	public:
