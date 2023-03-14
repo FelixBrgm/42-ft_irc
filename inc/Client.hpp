@@ -39,6 +39,7 @@ class Client
 
 		Client& operator= (const Client& other);
 
+		// Accessors
 		void setup_client_data(std::string nickname, std::string username, std::string realname);
 
 		void append_out_buffer(char* buffer);
@@ -47,6 +48,10 @@ class Client
 		bool is_incoming_msg_complete() const;
 		bool is_incoming_msg_too_long() const;
 		ClientStatus get_status() const;
+
+		std::string get_in_buffer();
+
+
 
 		void clear_in_buffer();
 		void clear_out_buffer();

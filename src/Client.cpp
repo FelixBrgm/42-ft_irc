@@ -2,16 +2,11 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
-Client::Client(){}
+Client::Client() {}
 
-Client::Client(int fd) : _fd(fd)
-{
+Client::Client(int fd) : _fd(fd) {}
 
-}
-
-Client::~Client()
-{
-};
+Client::~Client() {}
 
 Client::Client(const Client& other)
 {
@@ -98,4 +93,9 @@ void Client::disconnect()
 			
 		}
 	}
+}
+
+std::string Client::get_in_buffer()
+{
+	return _in_buffer;
 }

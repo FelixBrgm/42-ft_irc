@@ -158,10 +158,12 @@ void	Server::_parse_incoming_data(int fd)
 	// read incoming msg
 	std::size_t received_bytes = recv(fd, buf, MAX_MESSAGE_LENGHT, 0);
 
+	if (received_bytes == 0)
+		;// client closed remote unexpecteectly -> disconnect him
 	if (received_bytes < 0)
 		throw std::runtime_error("Failed To Read Incoming Message"); // just disconnect client, dont kill server
 	
-	Client	client = _fd_to_client[fd];
+	Client&	client = _fd_to_client[fd];
 	client.append_in_buffer(buf);
 
 
@@ -172,6 +174,59 @@ void	Server::_parse_incoming_data(int fd)
 	// msg needs to end with \r\n
 	if (!client.is_incoming_msg_complete())
 		return;
+
+
+
+
+
+	// PARSING OF PREFIX
+
+
+	// Parse Prefix
+
+	std::string client_message = client.get_in_buffer().substr(0, client.get_in_buffer().find("\r\n"));
+
+	if (client_message[0] == ':')
+	{
+    	size_t prefix_end = client_message.find(' ');
+    	client_message = client_message.substr(prefix_end);
+	}
+
+	std::string command = client_message.substr(0, client_message.find(std::string(" ")));
+
+	std::vector<std::string> params;
+	std::string temp = client_message.substr(client_message.find(std::string(" ")));
+	temp = temp.substr(1);
+	while (temp.length() && temp[0] != ':')
+	{
+		std::size_t index = temp.find(std::string(" "));
+		params.push_back(temp.substr(0, index));
+		if (index != std::string::npos)
+		{
+			temp = temp.substr(index);
+			temp.substr(1);
+		}
+		else
+		{
+			temp.clear();
+		}
+	}
+	if (temp.length())
+	{
+		temp.substr(1);
+		params.push_back(temp);
+	}
+
+	if (command == std::string("PASS"))
+		;
+	if (command == std::string("NICK"))
+		;
+	if (command == std::string("USER"))
+		;
+	else
+	{
+		;
+	}
 
 
 	ClientStatus client_status = client.get_status();
@@ -196,7 +251,7 @@ void	Server::_parse_incoming_data(int fd)
 	
 	// Client is registered
 
-	// to send back just write to the fd of the client
+	// to send back just write to the fd of the client     
 }
 
 
@@ -205,17 +260,21 @@ void	Server::_parse_incoming_data(int fd)
 
 // Cmd's
 
-// void	Server::_cmd_pass(const Client& client)
-// {
+void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
+{
+	(void)client;
+	(void)params;
+};
 
-// };
+void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 
-// void	Server::_cmd_nick(const Client& client)
-// {
+{
+	(void)client;
+	(void)params;
+};
 
-// };
-
-// void	Server::_cmd_user(const Client& client)
-// {
-
-// };
+void	Server::_cmd_user(Client* client, std::vector<std::string> params)
+{
+	(void)params;
+	(void)client;
+};
