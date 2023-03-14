@@ -60,8 +60,11 @@ void Server::start()
 		throw std::runtime_error("Failed To Mark Socket As Passive");
 
 	// First fd in the array is the listener
-	_pollfds[_nfds].fd = _listenerfd;
-	_pollfds[_nfds].events = POLLIN | POLLOUT | POLLHUP;
+	struct pollfd socket_info;
+	std::memset(&socket_info, 0, sizeof(socket_info));
+	socket_info.fd = _listenerfd;
+	socket_info.events = POLLIN | POLLOUT | POLLHUP;
+	_pollfds.push_back(socket_info);
 	_nfds++;
 
 	_event_loop();
@@ -71,7 +74,6 @@ void Server::start()
 void Server::_event_loop()
 {
 	// 512 is max in irc. \r\n included
-	char buf[MAX_MESSAGE_LENGHT];
 	while (true)
 	{
 		int	socket_change_count = poll(&_pollfds[0], _nfds, 0);
@@ -85,18 +87,18 @@ void Server::_event_loop()
 			if (_pollfds[i].revents == 0)
 				continue;
 			// error on socket -> remove from pollfds
-			if (_pollfds[i].revents & POLLERR)
+			if ((_pollfds[i].revents & POLLERR) == POLLERR)
 			{
-				Client	to_disconnect = _fd_to_client[_pollfds[i].fd];
-
+				;// dc client and restructure vector 
 			}
-				;//throw std::runtime_error("An Error Has Occured On A Filedescriptor");
 
-			if (_pollfds[i].revents & POLL_HUP)
-				;
+			if ((_pollfds[i].revents & POLLHUP) == POLLHUP)
+			{
+				;// dc client and restructure vector 
+			}
 
 			// new client is connecting
-			if (_pollfds[i].fd == _listenerfd && _pollfds[i].revents & POLLIN)
+			if (_pollfds[i].fd == _listenerfd && (_pollfds[i].revents & POLLIN) == POLLIN)
 				_accept_new_connection();
 			else
 			{
@@ -104,7 +106,9 @@ void Server::_event_loop()
 					_parse_incoming_data(_pollfds[i].fd);
 				else if ((_pollfds[i].revents & POLLOUT))
 				{
-					_fd_to_client[_pollfds[i].fd].clear_out_buffer();
+					// look if something is in response buffer if no
+					// copy res to outbuffer (never modify outbuffer besides here)
+					// send to client
 				}
 			}
 		}
@@ -119,7 +123,7 @@ void Server::_accept_new_connection()
 		if (new_socket_fd < 0)
 		{
 			if (errno != EAGAIN && errno != EWOULDBLOCK)
-				throw std::runtime_error("Failed To Open Socket");
+				throw std::runtime_error("Failed To Open Socket"); // maybe not kill server, just write error msg to std err
 			else
 				return ;
 		}
@@ -127,15 +131,18 @@ void Server::_accept_new_connection()
 		// Set O_NONBLOCK flag to enable nonblocking I/O
 		int flags = fcntl(new_socket_fd, F_GETFL, 0);
 		if (fcntl(new_socket_fd, F_SETFL, flags | O_NONBLOCK) < 0)
-			throw std::runtime_error("Failed To Set Socket To Non-Blocking");
+			throw std::runtime_error("Failed To Set Socket To Non-Blocking"); // maybe not kill server, just write error msg to std err
 
 		int optval = 1;
 		// Set SO_NOSIGPIPE option to prevent SIGPIPE signals on write errors
 		if (setsockopt(new_socket_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(optval)))
-			throw std::runtime_error("Failed To Set Socket To Not SIGPIPE");
+			throw std::runtime_error("Failed To Set Socket To Not SIGPIPE"); // maybe not kill server, just write error msg to std err
 
-		_pollfds[_nfds].fd = new_socket_fd;
-		_pollfds[_nfds].events = POLLIN | POLLOUT;
+		struct pollfd socket_info;
+		std::memset(&socket_info, 0, sizeof(socket_info));
+		socket_info.fd = new_socket_fd;
+		socket_info.events = POLLIN | POLLOUT | POLLHUP;
+		_pollfds.push_back(socket_info);
 
 		_fd_to_client[new_socket_fd] = Client(new_socket_fd);
 
@@ -151,11 +158,14 @@ void	Server::_parse_incoming_data(int fd)
 	// read incoming msg
 	std::size_t received_bytes = recv(fd, buf, MAX_MESSAGE_LENGHT, 0);
 
+	if (received_bytes == 0)
+		;// client closed remote unexpecteectly -> disconnect him
 	if (received_bytes < 0)
-		throw std::runtime_error("Failed To Read Incoming Message");
+		throw std::runtime_error("Failed To Read Incoming Message"); // just disconnect client, dont kill server
 	
-	Client	client = _fd_to_client[fd];
+	Client&	client = _fd_to_client[fd];
 	client.append_in_buffer(buf);
+
 
 	// (check if the message is bigger then 512) -> send error
 	if (client.is_incoming_msg_too_long())
@@ -165,8 +175,58 @@ void	Server::_parse_incoming_data(int fd)
 	if (!client.is_incoming_msg_complete())
 		return;
 
-	// command is not supported
-	// if (!)
+
+
+
+
+	// PARSING OF PREFIX
+
+
+	// Parse Prefix
+
+	std::string client_message = client.get_in_buffer().substr(0, client.get_in_buffer().find("\r\n"));
+
+	if (client_message[0] == ':')
+	{
+    	size_t prefix_end = client_message.find(' ');
+    	client_message = client_message.substr(prefix_end);
+	}
+
+	std::string command = client_message.substr(0, client_message.find(std::string(" ")));
+
+	std::vector<std::string> params;
+	std::string temp = client_message.substr(client_message.find(std::string(" ")));
+	temp = temp.substr(1);
+	while (temp.length() && temp[0] != ':')
+	{
+		std::size_t index = temp.find(std::string(" "));
+		params.push_back(temp.substr(0, index));
+		if (index != std::string::npos)
+		{
+			temp = temp.substr(index);
+			temp.substr(1);
+		}
+		else
+		{
+			temp.clear();
+		}
+	}
+	if (temp.length())
+	{
+		temp.substr(1);
+		params.push_back(temp);
+	}
+
+	if (command == std::string("PASS"))
+		;
+	if (command == std::string("NICK"))
+		;
+	if (command == std::string("USER"))
+		;
+	else
+	{
+		;
+	}
 
 
 	ClientStatus client_status = client.get_status();
@@ -175,7 +235,7 @@ void	Server::_parse_incoming_data(int fd)
 	{
 		// Client not registered
 		if (client_status == pass)
-			_cmd_pass(client); // check for password msg
+			; //_cmd_pass(client); // check for password msg
 		else if (client_status == nick)
 			; // check for nick msg
 		else if (client_status == user)
@@ -191,7 +251,7 @@ void	Server::_parse_incoming_data(int fd)
 	
 	// Client is registered
 
-
+	// to send back just write to the fd of the client     
 }
 
 
@@ -200,17 +260,21 @@ void	Server::_parse_incoming_data(int fd)
 
 // Cmd's
 
-void	Server::_cmd_pass(const Client& client)
+void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 {
-
+	(void)client;
+	(void)params;
 };
 
-void	Server::_cmd_nick(const Client& client)
-{
+void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 
+{
+	(void)client;
+	(void)params;
 };
 
-void	Server::_cmd_user(const Client& client)
+void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 {
-
+	(void)params;
+	(void)client;
 };

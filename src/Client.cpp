@@ -2,15 +2,11 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
-Client::Client(int fd) : _fd(fd)
-{
+Client::Client() {}
 
-}
+Client::Client(int fd) : _fd(fd) {}
 
-Client::~Client()
-{
-	close(_fd);
-};
+Client::~Client() {}
 
 Client::Client(const Client& other)
 {
@@ -26,9 +22,11 @@ Client& Client::operator= (const Client& other)
 		_nickname = other._nickname;
 		_username = other._username;
 		_realname = other._realname;
+		_hostname = other._hostname;
 
 		_registration_status = other._registration_status;
 
+		_joined_channels = other._joined_channels;
 		_active_channel = other._active_channel;
 
 		_in_buffer = other._in_buffer;
@@ -95,4 +93,9 @@ void Client::disconnect()
 			
 		}
 	}
+}
+
+std::string Client::get_in_buffer()
+{
+	return _in_buffer;
 }

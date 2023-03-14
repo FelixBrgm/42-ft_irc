@@ -12,6 +12,9 @@
 
 #include "Constants.hpp"
 
+
+
+
 class Server
 {
 	private:
@@ -24,7 +27,9 @@ class Server
 	
 		std::map<int, Client>												_fd_to_client;					
 		std::map<std::string, Channel>										_name_to_channel;
-	
+		std::vector<std::string>											_taken_username;
+
+
 	public:
 		Server(int port, std::string password, std::string server_name = std::string("ft_irc"));
 		~Server();
@@ -47,9 +52,9 @@ class Server
 
 
 		// commands
-		void	_cmd_pass(const Client& client);
-		void	_cmd_nick(const Client& client);
-		void	_cmd_user(const Client& client);
+		void	_cmd_pass(Client* client, std::vector<std::string> params);
+		void	_cmd_nick(Client* client, std::vector<std::string> params);
+		void	_cmd_user(Client* client, std::vector<std::string> params);
 
 	void	_parse(std::string message);
 
