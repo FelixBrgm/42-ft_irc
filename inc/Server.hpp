@@ -44,7 +44,8 @@ class Server
 
 
 		// helpers for commands
-		bool	_client_username_already_exists();
+		bool _username_already_exists(const std::string& nickname);
+		bool _is_valid_nickname(const std::string& nickname);
 
 
 		// error messages

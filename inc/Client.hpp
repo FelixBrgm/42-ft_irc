@@ -38,27 +38,37 @@ class Client
 
 		Client& operator= (const Client& other);
 
-		// Accessors
-		void setup_client_data(std::string nickname, std::string username, std::string realname);
+		// Getters And Setters
 
 		void append_out_buffer(char* buffer);
 		void append_in_buffer(char* buffer);
 
+		void proceed_registration_status();
+		std::string get_in_buffer();
+		std::string get_nickname() const;
+		void set_nickname(std::string& nickname);
+		void set_username(std::string& username);
+		void set_realname(std::string& realname);
+
+
+		// Status Checkers
 		bool is_incoming_msg_complete() const;
 		bool is_incoming_msg_too_long() const;
+		bool is_response_complete() const;
 		ClientStatus get_status() const;
 
-		std::string get_in_buffer();
 
 
-		bool is_response_complete() const;
 
 		void clear_in_buffer();
 		void clear_out_buffer();
 
+
+		// Actions
 		void disconnect();
 
 		void send_out_buffer();
+	
 };
 
 #endif

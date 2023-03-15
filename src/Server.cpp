@@ -7,6 +7,8 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <iostream>
+#include <sstream>
+#include <string>
 
 Server::Server(int port, std::string password, std::string server_name) : _port(port), _password(password), _server_name(server_name), _nfds(0), _listenerfd(-1)
 {
@@ -191,45 +193,39 @@ void	Server::_parse_incoming_data(int fd)
 
 
 
+	std::string message = client.get_in_buffer();
+	std::string command;
+	std::vector<std::string> params;
+	std::istringstream iss(message);
+	std::string token;
 
-	// PARSING OF PREFIX
-
-
-	// Parse Prefix
-
-	std::string client_message = client.get_in_buffer().substr(0, client.get_in_buffer().find("\r\n"));
-
-	if (client_message[0] == ':')
-	{
-    	size_t prefix_end = client_message.find(' ');
-    	client_message = client_message.substr(prefix_end);
+	// Check for prefix and remove it
+	if (message[0] == ':') {
+		iss >> token; // Read and discard the prefix
 	}
 
-	std::string command = client_message.substr(0, client_message.find(std::string(" ")));
+	// Extract the command
+	iss >> command;
 
-	std::vector<std::string> params;
-	
-	std::string temp = client_message.substr(client_message.find(std::string(" ")));
-	temp = temp.substr(1);
-	while (temp.length() && temp[0] != ':')
+	// Extract the parameters
+	while (iss >> token)
 	{
-		std::size_t index = temp.find(std::string(" "));
-		params.push_back(temp.substr(0, index));
-		if (index != std::string::npos)
+		if (token[0] == ':')
 		{
-			temp = temp.substr(index);
-			temp.substr(1);
+			// Extract the trailing part
+			std::string trailing;
+			std::getline(iss, trailing);
+			params.push_back(token.substr(1) + trailing);
+			break;
 		}
 		else
 		{
-			temp.clear();
+			params.push_back(token);
 		}
 	}
-	if (temp.length())
-	{
-		temp.substr(1);
-		params.push_back(temp);
-	}
+
+
+
 
 	if (command == std::string("PASS"))
 		_cmd_pass(&client, params);
@@ -239,56 +235,176 @@ void	Server::_parse_incoming_data(int fd)
 		_cmd_user(&client, params);
 	else
 	{
-		;// send error 421
+		std::string msg(std::string("421 ") + command + std::string(" :Unknown command\r\n"));
+		send(fd, msg.c_str(), msg.length(), SO_NOSIGPIPE);
+
 	}
 
 
-	ClientStatus client_status = client.get_status();
-	// Client is NOT registered
-	if (client_status != registered)
-	{
-		// Client not registered
-		if (client_status == pass)
-			; //_cmd_pass(client); // check for password msg
-		else if (client_status == nick)
-			; // check for nick msg
-		else if (client_status == user)
-			; // check for user msg
 
-		// Parse the in_buf of unregisered_client into the nickname, ...
-		// parse message (check if the message is bigger then 512)
-		// add unregistered_client to username_to_client
-		// add username to fd_to_username
-		// delete unregistered_client form _ft_to_uregistered_clients
-		return ;
-	}
-	
 	// Client is registered
 
 	// to send back just write to the fd of the client     
 }
 
 
+// Cmd's Helpers
 
+bool Server::_username_already_exists(const std::string& nickname)
+{
+	return std::find(_taken_usernames.begin(), _taken_usernames.end(), nickname) != _taken_usernames.end();
+}
 
+bool Server::_is_valid_nickname(const std::string& nickname)
+{
+	// Check for lenght 9
+    if (nickname.empty() || nickname.length() > 9)
+        return false;
+
+    // Check if the first character is a letter or special character
+    if (!std::isalpha(nickname[0]))
+        return false;
+
+	// valid nickname
+	return true;
+}
 
 // Cmd's
 
 void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 {
-	(void)client;
-	(void)params;
+	if (client->get_status() != pass)
+	{
+	// 462     ERR_ALREADYREGISTRED
+	// 						":You may not reregister"
+
+	// 				- Returned by the server to any link which tries to
+	// 				change part of the registered details (such as
+	// 				password or user details from second USER message).
+		return;
+	}
+	// we ignore if more params are passed
+	if (params.size() < 1)
+	{
+			// 461     ERR_NEEDMOREPARAMS
+			// 				"<command> :Not enough parameters"
+
+			// 		- Returned by the server by numerous commands to
+			// 		indicate to the client that it didn't supply enough
+			// 		parameters.
+		return;
+	}
+
+    if (params[0] != _password)
+	{
+			// 464     ERR_PASSWDMISMATCH
+			// 				":Password incorrect"
+
+			// 		- Returned to indicate a failed attempt at registering
+			// 		a connection for which a password was required and
+			// 		was either not given or incorrect.
+        return;
+    }
+
+	// valid password
+	client->proceed_registration_status();
 };
 
 void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
-
 {
-	(void)client;
-	(void)params;
+    if (client->get_status() == pass)
+    {
+        // 451 ERR_NOTREGISTERED
+        // ":You have not registered"
+        // Send the error message to the client
+        return;
+    }
+	
+	if (params.size() == 0)
+	{
+		// 431 ERR_NONICKNAMEGIVEN
+		// ":No nickname given"
+		// Send the error message to the client
+		return;
+	}	
+	std::string new_nickname = params[0];	
+	if (!_is_valid_nickname(new_nickname))
+	{
+		// 432 ERR_ERRONEUSNICKNAME
+		// "<nick> :Erroneous nickname"
+		// Send the error message to the client
+		return;
+	}
+
+	if (_username_already_exists(new_nickname))
+	{
+		// Handle nickname collision
+		// The client is directly connected, so send ERR_NICKCOLLISION
+		// 436 ERR_NICKCOLLISION
+		// "<nick> :Nickname collision KILL"
+		// Send the error message to the client
+		// disconnect client
+		std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), new_nickname);
+		if (it != _taken_usernames.end())
+			_taken_usernames.erase(it);
+		return;
+	}	
+
+
+	// Update the client's nickname
+	std::string old_nickname = client->get_nickname();
+	client->set_nickname(new_nickname);	
+
+	std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), old_nickname);
+	if (it != _taken_usernames.end())
+	    _taken_usernames.erase(it);
+	// If the client was already registered, send a notification to other users in the same channels
+	if (client->get_status() == registered)
+	{
+		// Notify other users in the same channels about the nickname change
+	}
+
+	// if status is nick we proceed to user
+	if (client->get_status() == nick)
+		client->proceed_registration_status();
 };
 
 void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 {
-	(void)params;
-	(void)client;
+	if (client->get_status() != user)
+	{
+		// 462     ERR_ALREADYREGISTRED
+		//         ":You may not reregister"
+		//
+		// Returned by the server to any link which tries to
+		// change part of the registered details (such as
+		// password or user details from second USER message).
+		return;
+	}
+
+	if (params.size() < 4)
+	{
+		// 461     ERR_NEEDMOREPARAMS
+		//         "<command> :Not enough parameters"
+		//
+		// Returned by the server by numerous commands to
+		// indicate to the client that it didn't supply enough
+		// parameters.
+		return;
+	}
+
+	std::string username = params[0];
+	std::string hostname = params[1];
+	std::string servername = params[2];
+	std::string realname = params[3];
+
+	// Ignore hostname and servername when USER comes from a directly connected client.
+	// They will be used only in server-to-server communication.
+
+	// Set the user's username and realname
+	client->set_username(username);
+	client->set_realname(realname);
+
+	client->proceed_registration_status();
+
 };

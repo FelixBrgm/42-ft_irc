@@ -37,13 +37,6 @@ Client& Client::operator= (const Client& other)
 	return *this;
 }
 
-void Client::setup_client_data(std::string nickname, std::string username, std::string realname)
-{
-	_nickname = nickname;
-	_username = username;
-	_realname = realname;
-}
-
 void Client::append_out_buffer(char* buffer)
 {
 	_out_buffer += std::string(buffer);
@@ -68,6 +61,27 @@ ClientStatus Client::get_status() const
 {
 	return _registration_status;
 }
+
+std::string Client::get_nickname() const
+{
+	return _nickname;
+}
+
+void Client::set_nickname(std::string& nickname)
+{
+	_nickname = nickname;
+}
+
+void Client::set_username(std::string& username)
+{
+	_username = username;
+}
+
+void Client::set_realname(std::string& realname)
+{
+	_realname = realname;
+}
+
 
 void Client::clear_in_buffer()
 {
@@ -101,7 +115,7 @@ bool Client::is_response_complete() const { return _response_buffer.length() != 
 void Client::send_out_buffer()
 {
 
-		int ret = send(_fd, NULL, 0, MSG_DONTWAIT | SO_NOSIGPIPE);
+		int ret = send(_fd, NULL, 0, SO_NOSIGPIPE);
 		if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
 		{
 		    // The writing operation would block
@@ -128,3 +142,14 @@ void Client::send_out_buffer()
 		}
 	}
 }
+
+
+void Client::proceed_registration_status()
+{
+	if (_registration_status == pass)
+		_registration_status = nick;
+	else if (_registration_status == nick)
+		_registration_status = user;
+	else if (_registration_status == user)
+		_registration_status = registered;
+};
