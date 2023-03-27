@@ -181,7 +181,6 @@ void	Server::_parse_incoming_data(int fd)
 	Client&	client = _fd_to_client[fd];
 	client.append_in_buffer(buf);
 
-
 	// (check if the message is bigger then 512) -> send error
 	if (client.is_incoming_msg_too_long())
 		;
@@ -192,8 +191,11 @@ void	Server::_parse_incoming_data(int fd)
 
 
 
+	
 
 	std::string message = client.get_in_buffer();
+	std::cout << "msg complete : " << message << std::endl;
+	client.clear_in_buffer();
 	std::string command;
 	std::vector<std::string> params;
 	std::istringstream iss(message);
@@ -226,18 +228,18 @@ void	Server::_parse_incoming_data(int fd)
 
 
 
-
 	if (command == std::string("PASS"))
 		_cmd_pass(&client, params);
 	else if (command == std::string("NICK"))
 		_cmd_nick(&client, params);
 	else if (command == std::string("USER"))
 		_cmd_user(&client, params);
+	else if (command == std::string("PING"))
+		_cmd_ping(&client, params);
 	else
 	{
-		std::string msg(std::string("421 ") + command + std::string(" :Unknown command\r\n"));
+		std::string msg(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
 		send(fd, msg.c_str(), msg.length(), SO_NOSIGPIPE);
-
 	}
 
 
@@ -408,3 +410,21 @@ void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 	client->proceed_registration_status();
 
 };
+
+void	Server::_cmd_ping(Client* client, std::vector<std::string> params)
+{
+	if (params.size() < 1)
+	{
+				// 409     ERR_NOORIGIN
+				// 						":No origin specified"
+
+				// 				- PING or PONG message missing the originator parameter
+				// 				which is required since these commands must work
+				// 				without valid prefixes.
+		return;
+	}
+
+	std::string client = params[0];
+	std::string response = "PONG " + server1;
+	// Send Pong
+}

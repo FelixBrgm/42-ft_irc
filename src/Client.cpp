@@ -87,7 +87,7 @@ void Client::clear_in_buffer()
 {
 	std::string::size_type index = _in_buffer.find(std::string("\r\n"));
 	if (index != std::string::npos)
-		_in_buffer.erase(0, index);
+		_in_buffer.erase(0, index + 2);
 }
 
 void Client::clear_out_buffer()

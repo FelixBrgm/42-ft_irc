@@ -56,6 +56,7 @@ class Server
 		void	_cmd_pass(Client* client, std::vector<std::string> params);
 		void	_cmd_nick(Client* client, std::vector<std::string> params);
 		void	_cmd_user(Client* client, std::vector<std::string> params);
+		void	_cmd_ping(Client* client, std::vector<std::string> params);
 
 	void	_parse(std::string message);
 
