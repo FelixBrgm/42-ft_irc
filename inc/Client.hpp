@@ -40,7 +40,8 @@ class Client
 
 		// Getters And Setters
 
-		void append_out_buffer(char* buffer);
+		void append_response_buffer(std::string buffer);
+		void append_out_buffer(std::string buffer);
 		void append_in_buffer(char* buffer);
 
 		void proceed_registration_status();
@@ -60,7 +61,7 @@ class Client
 
 
 
-		void clear_in_buffer();
+		void clear_msg_in_buffer();
 		void clear_out_buffer();
 
 

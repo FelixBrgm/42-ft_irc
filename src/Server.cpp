@@ -124,7 +124,6 @@ void Server::_event_loop()
 
 			if (!client.is_response_complete())
 				continue;
-			
 			client.send_out_buffer();
 		}
 	}
@@ -181,72 +180,95 @@ void	Server::_parse_incoming_data(int fd)
 	Client&	client = _fd_to_client[fd];
 	client.append_in_buffer(buf);
 
-	// (check if the message is bigger then 512) -> send error
-	if (client.is_incoming_msg_too_long())
-		;
-	
-	// msg needs to end with \r\n
-	if (!client.is_incoming_msg_complete())
-		return;
 
-
-
-	
-
-	std::string message = client.get_in_buffer();
-	std::cout << "msg complete : " << message << std::endl;
-	client.clear_in_buffer();
-	std::string command;
-	std::vector<std::string> params;
-	std::istringstream iss(message);
-	std::string token;
-
-	// Check for prefix and remove it
-	if (message[0] == ':') {
-		iss >> token; // Read and discard the prefix
-	}
-
-	// Extract the command
-	iss >> command;
-
-	// Extract the parameters
-	while (iss >> token)
+	while (true)
 	{
-		if (token[0] == ':')
+		// (check if the message is bigger then 512) -> send error
+		if (client.is_incoming_msg_too_long())
+			;
+
+		// msg needs to end with \r\n
+		if (!client.is_incoming_msg_complete())
+			return;
+
+
+
+		std::string message = client.get_in_buffer();
+		std::cout << "Received:" <<message.substr(0, message.find("\r\n")) << std::endl;
+		client.clear_msg_in_buffer();
+		std::string command;
+		std::vector<std::string> params;
+		std::istringstream iss(message);
+		std::string token;
+
+		// Check for prefix and remove it
+		if (message[0] == ':') {
+			iss >> token; // Read and discard the prefix
+		}
+
+		// Extract the command
+		iss >> command;
+
+		// Extract the parameters
+		while (iss >> token)
 		{
-			// Extract the trailing part
-			std::string trailing;
-			std::getline(iss, trailing);
-			params.push_back(token.substr(1) + trailing);
-			break;
+			if (token[0] == ':')
+			{
+				// Extract the trailing part
+				std::string trailing;
+				std::getline(iss, trailing);
+				params.push_back(token.substr(1) + trailing);
+				break;
+			}
+			else
+			{
+				params.push_back(token);
+			}
+		}
+
+
+		if (command == std::string("PASS"))
+			_cmd_pass(&client, params);
+		else if (command == std::string("NICK"))
+			_cmd_nick(&client, params);
+		else if (command == std::string("USER"))
+			_cmd_user(&client, params);
+		else if (command == std::string("PING"))
+			_cmd_ping(&client, params);
+		else if (command == std::string("CAP"))
+		{
+			if (params.size() > 0)
+			{
+				if (params[0] == "LS")
+				{
+					client.append_response_buffer("CAP * LS :\r\n");
+				}
+				else if (params[0] == "END")
+				{
+					// Do nothing, CAP negotiation has ended
+				}
+				else
+				{
+					client.append_response_buffer("421 * CAP :Unknown command\r\n");
+				}
+			}
+			else
+			{
+				client.append_response_buffer("421 * CAP :Unknown command\r\n");
+			}
 		}
 		else
 		{
-			params.push_back(token);
+			client.append_response_buffer(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
 		}
+
+
+
+		// Client is registered
+
+		// to send back just write to the fd of the client     
 	}
-
-
-
-	if (command == std::string("PASS"))
-		_cmd_pass(&client, params);
-	else if (command == std::string("NICK"))
-		_cmd_nick(&client, params);
-	else if (command == std::string("USER"))
-		_cmd_user(&client, params);
-	else if (command == std::string("PING"))
-		_cmd_ping(&client, params);
-	else
-	{
-		std::string msg(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
-		send(fd, msg.c_str(), msg.length(), SO_NOSIGPIPE);
-	}
-
-
-
-	// Client is registered
-
-	// to send back just write to the fd of the client     
+	
 }
 
 
@@ -275,36 +297,20 @@ bool Server::_is_valid_nickname(const std::string& nickname)
 
 void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 {
-	if (client->get_status() != pass)
-	{
-	// 462     ERR_ALREADYREGISTRED
-	// 						":You may not reregister"
-
-	// 				- Returned by the server to any link which tries to
-	// 				change part of the registered details (such as
-	// 				password or user details from second USER message).
-		return;
-	}
-	// we ignore if more params are passed
-	if (params.size() < 1)
-	{
-			// 461     ERR_NEEDMOREPARAMS
-			// 				"<command> :Not enough parameters"
-
-			// 		- Returned by the server by numerous commands to
-			// 		indicate to the client that it didn't supply enough
-			// 		parameters.
-		return;
-	}
+    if (client->get_status() != pass)
+    {
+        client->append_response_buffer("462 :You may not reregister\r\n");
+        return;
+    }
+    if (params.size() < 1)
+    {
+        client->append_response_buffer("461 PASS :Not enough parameters\r\n");
+        return;
+    }
 
     if (params[0] != _password)
-	{
-			// 464     ERR_PASSWDMISMATCH
-			// 				":Password incorrect"
-
-			// 		- Returned to indicate a failed attempt at registering
-			// 		a connection for which a password was required and
-			// 		was either not given or incorrect.
+    {
+        client->append_response_buffer("464 :Password incorrect\r\n");
         return;
     }
 
@@ -314,41 +320,33 @@ void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 
 void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 {
-    if (client->get_status() == pass)
-    {
-        // 451 ERR_NOTREGISTERED
-        // ":You have not registered"
-        // Send the error message to the client
-        return;
-    }
-	
+	if (client->get_status() == pass)
+	{
+		client->append_response_buffer("451 :You have not registered\r\n");
+		return;
+	}
+
 	if (params.size() == 0)
 	{
-		// 431 ERR_NONICKNAMEGIVEN
-		// ":No nickname given"
-		// Send the error message to the client
+		client->append_response_buffer("431 :No nickname given\r\n");
 		return;
-	}	
-	std::string new_nickname = params[0];	
+	}    
+	std::string new_nickname = params[0];    
 	if (!_is_valid_nickname(new_nickname))
 	{
-		// 432 ERR_ERRONEUSNICKNAME
-		// "<nick> :Erroneous nickname"
-		// Send the error message to the client
+		client->append_response_buffer("432 " + new_nickname + " :Erroneous nickname\r\n");
 		return;
 	}
 
 	if (_username_already_exists(new_nickname))
 	{
 		// Handle nickname collision
-		// The client is directly connected, so send ERR_NICKCOLLISION
-		// 436 ERR_NICKCOLLISION
-		// "<nick> :Nickname collision KILL"
-		// Send the error message to the client
+		client->append_response_buffer("436 " + new_nickname + " :Nickname collision KILL\r\n");
+
 		// disconnect client
-		std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), new_nickname);
-		if (it != _taken_usernames.end())
-			_taken_usernames.erase(it);
+		// std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), new_nickname);
+		// if (it != _taken_usernames.end())
+		// 	_taken_usernames.erase(it);
 		return;
 	}	
 
@@ -375,23 +373,13 @@ void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 {
 	if (client->get_status() != user)
 	{
-		// 462     ERR_ALREADYREGISTRED
-		//         ":You may not reregister"
-		//
-		// Returned by the server to any link which tries to
-		// change part of the registered details (such as
-		// password or user details from second USER message).
+		client->append_response_buffer("462 :You may not reregister\r\n");
 		return;
 	}
 
 	if (params.size() < 4)
 	{
-		// 461     ERR_NEEDMOREPARAMS
-		//         "<command> :Not enough parameters"
-		//
-		// Returned by the server by numerous commands to
-		// indicate to the client that it didn't supply enough
-		// parameters.
+		client->append_response_buffer("461 USER :Not enough parameters\r\n");
 		return;
 	}
 
@@ -415,16 +403,22 @@ void	Server::_cmd_ping(Client* client, std::vector<std::string> params)
 {
 	if (params.size() < 1)
 	{
-				// 409     ERR_NOORIGIN
-				// 						":No origin specified"
-
-				// 				- PING or PONG message missing the originator parameter
-				// 				which is required since these commands must work
-				// 				without valid prefixes.
+		client->append_response_buffer("409 :No origin specified\r\n");
 		return;
 	}
 
-	std::string client = params[0];
-	std::string response = "PONG " + server1;
+	std::string answer = params[0];
+	std::string response = "PONG " + answer + "\r\n";
 	// Send Pong
+	client->append_response_buffer(response);
+}
+
+
+void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
+{
+	if (params.size() < 1)
+    {
+        client->append_response_buffer("461 * JOIN :Not enough parameters\r\n");
+        return;
+    }
 }

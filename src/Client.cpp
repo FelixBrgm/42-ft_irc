@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <iostream>
 
 Client::Client()  {}
 
@@ -37,14 +38,19 @@ Client& Client::operator= (const Client& other)
 	return *this;
 }
 
-void Client::append_out_buffer(char* buffer)
+void Client::append_response_buffer(std::string buffer)
 {
-	_out_buffer += std::string(buffer);
+	_response_buffer += buffer;
 }
 
 void Client::append_in_buffer(char* buffer)
 {
 	_in_buffer += std::string(buffer);
+}
+
+void Client::append_out_buffer(std::string buffer)
+{
+	_out_buffer += buffer;
 }
 
 bool Client::is_incoming_msg_complete() const
@@ -83,7 +89,7 @@ void Client::set_realname(std::string& realname)
 }
 
 
-void Client::clear_in_buffer()
+void Client::clear_msg_in_buffer()
 {
 	std::string::size_type index = _in_buffer.find(std::string("\r\n"));
 	if (index != std::string::npos)
@@ -109,24 +115,25 @@ std::string Client::get_in_buffer()
 }
 
 
-bool Client::is_response_complete() const { return _response_buffer.length() != 0; };
+bool Client::is_response_complete() const
+{
+	return _response_buffer.length() != 0;
+};
 
 
 void Client::send_out_buffer()
 {
-
-		int ret = send(_fd, NULL, 0, SO_NOSIGPIPE);
-		if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
-		{
-		    // The writing operation would block
-			return;
-		}
-		
-		if (ret == -1)
-		{
-		    // Handle error -> disconnect client
-			return ;
-		}
+	int ret = send(_fd, NULL, 0, SO_NOSIGPIPE);
+	if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+	{
+	    // The writing operation would block
+		return;
+	}
+	else if (ret == -1)
+	{
+	    // Handle error -> disconnect client
+		return ;
+	}
 
 
 	_out_buffer = _response_buffer;
