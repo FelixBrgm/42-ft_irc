@@ -300,15 +300,15 @@ void Server::_welcome_new_user(Client* client)
     client->append_response_buffer(rpl_welcome_msg);
 
     // Send RPL_YOURHOST: 002
-    std::string rpl_yourhost_msg = "002 " + nickname + " :Your host is " + server_host + ", running version <server_version>\r\n";
+    std::string rpl_yourhost_msg = "002 " + nickname + " :Your host is " + server_host + ", running version 1.0\r\n";
     client->append_response_buffer(rpl_yourhost_msg);
 
     // Send RPL_CREATED: 003
-    std::string rpl_created_msg = "003 " + nickname + " :This server was created <date>\r\n";
+    std::string rpl_created_msg = "003 " + nickname + " :This server was created " + _server_creation_time + "\r\n";
     client->append_response_buffer(rpl_created_msg);
 
     // Send RPL_MYINFO: 004
-	std::string rpl_myinfo_msg = "004 " + nickname + " " + server_host + " 1.0 o\r\n";
+	std::string rpl_myinfo_msg = "004 " + nickname + " " + server_host + " 1.0 o o\r\n";
     client->append_response_buffer(rpl_myinfo_msg);
 
     // ... any other messages you want to send
@@ -360,18 +360,11 @@ void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 
 	// valid password
 	client->proceed_registration_status();
-	std::cout << "Succesfully PASSED" << std::endl;
 };
 
 void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 {
-	// std::cout << "Starting Nick" << std::endl;
-	// std::cout << "==================================" << std::endl;
 
-	// for (std::size_t i = 0; i < params.size(); i++)
-	// 	std::cout << params[i] << " size: " << std::endl;
-	
-	// std::cout << "==================================" << std::endl;
 
 	if (client->get_status() == pass)
 	{
@@ -422,13 +415,11 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 	// if status is nick we proceed to user
 	if (client->get_status() == nick)
 		client->proceed_registration_status();
-	std::cout << "Succesfully NICKED" << std::endl;
 	
 };
 
 void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 {
-	std::cout << "Starting User" << std::endl;
 
 	if (client->get_status() != user)
 	{
@@ -455,7 +446,6 @@ void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 	client->set_realname(realname);
 
 	_welcome_new_user(client);
-	std::cout << "Succesfully USERED" << std::endl;
 
 };
 
