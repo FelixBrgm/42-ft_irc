@@ -58,6 +58,4 @@ all: test
 #         rm -rf minirt.dSYM
 
 test:
-	g++ -Wall -Werror -Wextra src/main.cpp src/Server.cpp src/Client.cpp src/Channel.cpp && echo "STARTED" && ./a.out 4000 a 
-
-# re: fclean al
+	g++ -Wall -Werror -Wextra src/main.cpp src/Server.cpp src/Client.cpp src/Channel.cpp && echo "STARTED" && ./a.out 4000 a

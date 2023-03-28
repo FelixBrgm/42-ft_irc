@@ -1,6 +1,8 @@
 #include <iostream>
 #include "../inc/Server.hpp"
-
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 bool	valid_arguments(int argc, char *argv[])
 {
 	if (argc != 3)
@@ -30,9 +32,12 @@ int main(int argc, char* argv[])
 {
 	if (!valid_arguments(argc, argv))
 		return 1;	
-
+	std::cout << argv[1] << std::endl;
+	std::cout << argv[2] << std::endl;
 	Server a(std::stoi(std::string(argv[1])), std::string(argv[2]));
-	a.start();
 
+
+	a.start();
+		// If your server was created when it started, use this:
 	return 0;
 }

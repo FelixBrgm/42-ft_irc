@@ -47,6 +47,8 @@ class Client
 		void proceed_registration_status();
 		std::string get_in_buffer();
 		std::string get_nickname() const;
+		std::string get_username() const;
+		std::string get_realname() const;
 		void set_nickname(std::string& nickname);
 		void set_username(std::string& username);
 		void set_realname(std::string& realname);

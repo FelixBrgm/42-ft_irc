@@ -4,9 +4,9 @@
 #include <errno.h>
 #include <iostream>
 
-Client::Client()  {}
+Client::Client() : _registration_status(pass) {}
 
-Client::Client(int fd) : _fd(fd) {}
+Client::Client(int fd) : _fd(fd), _registration_status(pass) {}
 
 Client::~Client() {}
 
@@ -72,7 +72,14 @@ std::string Client::get_nickname() const
 {
 	return _nickname;
 }
-
+std::string Client::get_username() const
+{
+	return _username;
+}
+std::string Client::get_realname() const
+{
+	return _realname;
+}
 void Client::set_nickname(std::string& nickname)
 {
 	_nickname = nickname;

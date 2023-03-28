@@ -21,10 +21,12 @@ class Server
 		int																	_port;
 		std::string															_password;
 		std::string															_server_name;
+		std::string															_server_creation_time;
 		std::vector<struct pollfd>											_pollfds;
 		unsigned short														_nfds;
 		int																	_listenerfd;
 	
+
 		std::map<int, Client>												_fd_to_client;					
 		std::map<std::string, Channel>										_name_to_channel;
 		std::vector<std::string>											_taken_usernames;
@@ -46,6 +48,7 @@ class Server
 		// helpers for commands
 		bool _username_already_exists(const std::string& nickname);
 		bool _is_valid_nickname(const std::string& nickname);
+		void _welcome_new_user(Client* client);
 
 
 		// error messages

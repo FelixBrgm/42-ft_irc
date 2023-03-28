@@ -9,10 +9,18 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 Server::Server(int port, std::string password, std::string server_name) : _port(port), _password(password), _server_name(server_name), _nfds(0), _listenerfd(-1)
 {
+	std::time_t now = std::time(nullptr);
+    std::tm* creation_tm = std::localtime(&now);
 
+    std::stringstream date_stream;
+    date_stream << std::put_time(creation_tm, "%d-%b-%Y"); // or "%b %d %Y" for an alternative format
+	_server_creation_time = date_stream.str();
 };
 
 Server::~Server()
@@ -202,7 +210,8 @@ void	Server::_parse_incoming_data(int fd)
 		std::string token;
 
 		// Check for prefix and remove it
-		if (message[0] == ':') {
+		if (message[0] == ':')
+		{
 			iss >> token; // Read and discard the prefix
 		}
 
@@ -226,6 +235,11 @@ void	Server::_parse_incoming_data(int fd)
 			}
 		}
 
+		// Remove trailing \r from the last parameter
+		if (!params.empty() && !params.back().empty() && params.back().back() == '\r')
+		{
+			params.back().pop_back();
+		}
 
 		if (command == std::string("PASS"))
 			_cmd_pass(&client, params);
@@ -274,6 +288,34 @@ void	Server::_parse_incoming_data(int fd)
 
 // Cmd's Helpers
 
+void Server::_welcome_new_user(Client* client)
+{
+    std::string nickname = client->get_nickname();
+    std::string username = client->get_username();
+    std::string realname = client->get_realname();
+    std::string server_host = _server_name;
+
+    // Send RPL_WELCOME: 001
+    std::string rpl_welcome_msg = "001 " + nickname + " :Welcome to the Internet Relay Network " + nickname + "!" + username + "@" + realname + "\r\n";
+    client->append_response_buffer(rpl_welcome_msg);
+
+    // Send RPL_YOURHOST: 002
+    std::string rpl_yourhost_msg = "002 " + nickname + " :Your host is " + server_host + ", running version <server_version>\r\n";
+    client->append_response_buffer(rpl_yourhost_msg);
+
+    // Send RPL_CREATED: 003
+    std::string rpl_created_msg = "003 " + nickname + " :This server was created <date>\r\n";
+    client->append_response_buffer(rpl_created_msg);
+
+    // Send RPL_MYINFO: 004
+	std::string rpl_myinfo_msg = "004 " + nickname + " " + server_host + " 1.0 o\r\n";
+    client->append_response_buffer(rpl_myinfo_msg);
+
+    // ... any other messages you want to send
+
+    client->proceed_registration_status();
+}
+
 bool Server::_username_already_exists(const std::string& nickname)
 {
 	return std::find(_taken_usernames.begin(), _taken_usernames.end(), nickname) != _taken_usernames.end();
@@ -297,11 +339,13 @@ bool Server::_is_valid_nickname(const std::string& nickname)
 
 void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 {
+
     if (client->get_status() != pass)
     {
         client->append_response_buffer("462 :You may not reregister\r\n");
         return;
     }
+
     if (params.size() < 1)
     {
         client->append_response_buffer("461 PASS :Not enough parameters\r\n");
@@ -316,10 +360,19 @@ void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 
 	// valid password
 	client->proceed_registration_status();
+	std::cout << "Succesfully PASSED" << std::endl;
 };
 
 void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 {
+	// std::cout << "Starting Nick" << std::endl;
+	// std::cout << "==================================" << std::endl;
+
+	// for (std::size_t i = 0; i < params.size(); i++)
+	// 	std::cout << params[i] << " size: " << std::endl;
+	
+	// std::cout << "==================================" << std::endl;
+
 	if (client->get_status() == pass)
 	{
 		client->append_response_buffer("451 :You have not registered\r\n");
@@ -328,12 +381,14 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 
 	if (params.size() == 0)
 	{
+
 		client->append_response_buffer("431 :No nickname given\r\n");
 		return;
 	}    
 	std::string new_nickname = params[0];    
 	if (!_is_valid_nickname(new_nickname))
 	{
+
 		client->append_response_buffer("432 " + new_nickname + " :Erroneous nickname\r\n");
 		return;
 	}
@@ -367,10 +422,14 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 	// if status is nick we proceed to user
 	if (client->get_status() == nick)
 		client->proceed_registration_status();
+	std::cout << "Succesfully NICKED" << std::endl;
+	
 };
 
 void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 {
+	std::cout << "Starting User" << std::endl;
+
 	if (client->get_status() != user)
 	{
 		client->append_response_buffer("462 :You may not reregister\r\n");
@@ -395,7 +454,8 @@ void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 	client->set_username(username);
 	client->set_realname(realname);
 
-	client->proceed_registration_status();
+	_welcome_new_user(client);
+	std::cout << "Succesfully USERED" << std::endl;
 
 };
 
