@@ -70,6 +70,7 @@ class Server
 		void 	_cmd_privmsg(Client* client, const std::vector<std::string>& params);
 		void 	_cmd_quit(Client* client, const std::vector<std::string>& params = std::vector<std::string>());
 		void	_cmd_op(Client* client, const std::vector<std::string>& params);
+		void	_cmd_kick(Client* client, const std::vector<std::string>& params);
 
 
 	void	_parse(std::string message);

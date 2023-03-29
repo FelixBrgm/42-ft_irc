@@ -1,7 +1,7 @@
 #ifndef CHANNEL_HPP
 #define CHANNEL_HPP
 #include <vector>
-
+#include <set>
 #include "Client.hpp"
 
 class Channel
@@ -9,7 +9,7 @@ class Channel
     private:
 		std::string					_name;
 		std::vector<Client*>		_channel_clients;
-		std::vector<std::string>	_channel_operators;
+		std::set<std::string>		_channel_operators;
 
     public:
         Channel();

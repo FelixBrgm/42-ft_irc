@@ -72,16 +72,3 @@ bool Channel::is_operator(const std::string& nickname) const
 {
     return _channel_operators.find(nickname) != _channel_operators.end();
 }
-
-void Channel::add_operator(const std::string& nickname)
-{
-	_channel_operators.push_back(nickname);
-}
-void Channel::remove_operator(const std::string& nickname)
-{
-	_channel_operators.erase(nickname);
-}
-bool Channel::is_operator(const std::string& nickname) const
-{
-	return _channel_operators.find(nickname) != _channel_operators.end();
-}
