@@ -167,3 +167,21 @@ void Client::proceed_registration_status()
 	else if (_registration_status == user)
 		_registration_status = registered;
 };
+
+
+void Client::join_channel(std::string channel_name, Channel *channel_to_join)
+{
+	// maybe need to set active channel pointer
+
+	_joined_channels[channel_name] = channel_to_join;
+}
+
+std::map<std::string, Channel*> Client::get_joined_channels()
+{
+	return _joined_channels;
+}
+
+int	Client::get_fd() const
+{
+	return _fd;
+}

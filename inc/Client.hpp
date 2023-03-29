@@ -49,6 +49,8 @@ class Client
 		std::string get_nickname() const;
 		std::string get_username() const;
 		std::string get_realname() const;
+		int			get_fd() const;
+		std::map<std::string, Channel*> get_joined_channels();
 		void set_nickname(std::string& nickname);
 		void set_username(std::string& username);
 		void set_realname(std::string& realname);
@@ -69,7 +71,7 @@ class Client
 
 		// Actions
 		void disconnect();
-
+		void join_channel(std::string channel_name, Channel *channel_to_join);
 		void send_out_buffer();
 	
 };

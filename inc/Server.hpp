@@ -46,9 +46,15 @@ class Server
 
 
 		// helpers for commands
+		void _unexpected_client_disconnection(Client* client);
+		Client* _find_client_by_nickname(const std::string& nickname);
+		void _send_quit_message_to_channels(Client* client, const std::string& quit_message);;
+		void _remove_client(int client_fd);
+		
 		bool _username_already_exists(const std::string& nickname);
 		bool _is_valid_nickname(const std::string& nickname);
 		void _welcome_new_user(Client* client);
+		std::vector<std::string> _split_str(const std::string& str, char delimiter);
 
 
 		// error messages
@@ -61,6 +67,9 @@ class Server
 		void	_cmd_user(Client* client, std::vector<std::string> params);
 		void	_cmd_ping(Client* client, std::vector<std::string> params);
 		void	_cmd_join(Client* client, const std::vector<std::string>& params);
+		void 	_cmd_privmsg(Client* client, const std::vector<std::string>& params);
+		void 	_cmd_quit(Client* client, const std::vector<std::string>& params = std::vector<std::string>());
+		void	_cmd_op(Client* client, const std::vector<std::string>& params);
 
 
 	void	_parse(std::string message);

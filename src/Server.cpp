@@ -99,12 +99,14 @@ void Server::_event_loop()
 			// error on socket -> remove from pollfds
 			if ((_pollfds[i].revents & POLLERR) == POLLERR)
 			{
-				;// dc client and restructure vector 
+				_unexpected_client_disconnection(&_fd_to_client[_pollfds[i].fd]);
+				break;
 			}
 
 			if ((_pollfds[i].revents & POLLHUP) == POLLHUP)
 			{
-				;// dc client and restructure vector 
+				_unexpected_client_disconnection(&_fd_to_client[_pollfds[i].fd]);
+				break;
 			}
 
 			// new client is connecting
@@ -114,16 +116,7 @@ void Server::_event_loop()
 			{
 				if (_pollfds[i].revents & POLLIN)
 					_parse_incoming_data(_pollfds[i].fd);
-				else if ((_pollfds[i].revents & POLLOUT))
-				{
-					// look if something is in response buffer if no
-					// copy res to outbuffer (never modify outbuffer besides here)
-					// send to client
-				}
 			}
-			
-
-			//send
 		}
 
 		for (int i = 0; i < _nfds; i++)
@@ -145,7 +138,10 @@ void Server::_accept_new_connection()
 		if (new_socket_fd < 0)
 		{
 			if (errno != EAGAIN && errno != EWOULDBLOCK)
-				throw std::runtime_error("Failed To Open Socket"); // maybe not kill server, just write error msg to std err
+			{
+				std::cerr << "Failed To Open Socket -> Client Could Not Connect" << std::endl;
+				return;
+			}
 			else
 				return ;
 		}
@@ -153,13 +149,17 @@ void Server::_accept_new_connection()
 		// Set O_NONBLOCK flag to enable nonblocking I/O
 		int flags = fcntl(new_socket_fd, F_GETFL, 0);
 		if (fcntl(new_socket_fd, F_SETFL, flags | O_NONBLOCK) < 0)
-			throw std::runtime_error("Failed To Set Socket To Non-Blocking"); // maybe not kill server, just write error msg to std err
-
+		{
+				std::cerr << "Failed To Set Socket To Non-Blocking -> Client Could Not Connect" << std::endl;
+				return;
+		}
 		int optval = 1;
 		// Set SO_NOSIGPIPE option to prevent SIGPIPE signals on write errors
 		if (setsockopt(new_socket_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(optval)))
-			throw std::runtime_error("Failed To Set Socket To Not SIGPIPE"); // maybe not kill server, just write error msg to std err
-
+		{
+				std::cerr << "Failed To Set Socket To Not SIGPIPE -> Client Could Not Connect" << std::endl;
+				return;
+		}
 		struct pollfd socket_info;
 		std::memset(&socket_info, 0, sizeof(socket_info));
 		socket_info.fd = new_socket_fd;
@@ -179,13 +179,20 @@ void	Server::_parse_incoming_data(int fd)
 	char buf[MAX_MESSAGE_LENGHT] = {0};
 	// read incoming msg
 	std::size_t received_bytes = recv(fd, buf, MAX_MESSAGE_LENGHT, 0);
+	Client&	client = _fd_to_client[fd];
 
 	if (received_bytes == 0)
-		;// client closed remote unexpecteectly -> disconnect him
+	{
+		_unexpected_client_disconnection(&client);
+		return;
+	}
+
 	if (received_bytes < 0)
-		throw std::runtime_error("Failed To Read Incoming Message"); // just disconnect client, dont kill server
+	{
+		_unexpected_client_disconnection(&client);
+		return;
+	}
 	
-	Client&	client = _fd_to_client[fd];
 	client.append_in_buffer(buf);
 
 
@@ -271,6 +278,10 @@ void	Server::_parse_incoming_data(int fd)
 				client.append_response_buffer("421 * CAP :Unknown command\r\n");
 			}
 		}
+		else if (command == std::string("JOIN"))
+			_cmd_join(&client, params);
+		else if (command == std::string("PRIVMSG"))
+			_cmd_privmsg(&client, params);
 		else
 		{
 			client.append_response_buffer(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
@@ -287,6 +298,83 @@ void	Server::_parse_incoming_data(int fd)
 
 
 // Cmd's Helpers
+
+
+
+
+
+
+void Server::_unexpected_client_disconnection(Client* client)
+{
+    _send_quit_message_to_channels(client, "Client disconnected unexpectedly");
+    _remove_client(client->get_fd());
+}
+
+
+void Server::_remove_client(int client_fd)
+{
+    // Remove the client from the _fd_to_client map
+    _fd_to_client.erase(client_fd);
+
+    // Remove the corresponding pollfd from the _pollfds vector
+    for (std::vector<struct pollfd>::iterator it = _pollfds.begin(); it != _pollfds.end(); ++it)
+    {
+        if (it->fd == client_fd)
+        {
+            _pollfds.erase(it);
+            break;
+        }
+    }
+	_nfds--;
+    // Close the client's file descriptor
+    close(client_fd);
+}
+
+
+void Server::_send_quit_message_to_channels(Client* client, const std::string& quit_message)
+{
+	std::map<std::string, Channel*> joined_channels = client->get_joined_channels();
+	std::string quit_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " QUIT :" + quit_message + "\r\n";
+	for (std::map<std::string, Channel*>::iterator it = joined_channels.begin(); it != joined_channels.end(); ++it)
+	{
+		Channel* channel = it->second;
+		const std::vector<Client*>& clients_in_channel = channel->get_clients();
+		for (std::vector<Client*>::const_iterator cit = clients_in_channel.begin(); cit != clients_in_channel.end(); ++cit)
+		{
+			Client* client_in_channel = *cit;
+			client_in_channel->append_response_buffer(quit_msg);
+		}
+	}
+}
+
+
+Client* Server::_find_client_by_nickname(const std::string& nickname)
+{
+    for (std::map<int, Client>::iterator it = _fd_to_client.begin(); it != _fd_to_client.end(); ++it)
+    {
+        if (it->second.get_nickname() == nickname)
+        {
+            return &(it->second);
+        }
+    }
+    return nullptr;
+}
+
+std::vector<std::string> Server::_split_str(const std::string& str, char delimiter)
+{
+    std::vector<std::string> tokens;
+    std::istringstream iss(str);
+    std::string token;
+
+    while (std::getline(iss, token, delimiter))
+    {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
+
+
 
 void Server::_welcome_new_user(Client* client)
 {
@@ -406,6 +494,9 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 	std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), old_nickname);
 	if (it != _taken_usernames.end())
 	    _taken_usernames.erase(it);
+	
+	_taken_usernames.push_back(new_nickname);
+
 	// If the client was already registered, send a notification to other users in the same channels
 	if (client->get_status() == registered)
 	{
@@ -467,8 +558,147 @@ void	Server::_cmd_ping(Client* client, std::vector<std::string> params)
 void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 {
 	if (params.size() < 1)
-    {
-        client->append_response_buffer("461 * JOIN :Not enough parameters\r\n");
-        return;
-    }
+	{
+		client->append_response_buffer("461 * JOIN :Not enough parameters\r\n");
+		return;
+	}
+	std::vector<std::string> channels = _split_str(params[0], ',');
+	std::vector<std::string> keys;
+	if (params.size() > 1)
+	{
+		keys = _split_str(params[1], ',');
+	}
+
+	for (size_t i = 0; i < channels.size(); ++i)
+	{
+		const std::string& channel_name = channels[i];
+		std::string key = i < keys.size() ? keys[i] : "";
+
+		if (_name_to_channel.find(channel_name) == _name_to_channel.end())
+		{
+			// Create the channel if it doesn't exist
+			_name_to_channel[channel_name] = Channel(channel_name);
+
+			// Grant operator status to the creator
+			_name_to_channel[channel_name].add_operator(client->get_nickname());
+		}
+
+		Channel& channel = _name_to_channel[channel_name];
+
+		channel.add_client(client);
+		client->join_channel(channel_name, &channel);
+
+		std::string join_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " JOIN " + channel_name + "\r\n";
+		const std::vector<Client*>& clients_in_channel = channel.get_clients();
+		for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
+		{
+			Client* user_in_channel = *it;
+			user_in_channel->append_response_buffer(join_msg);
+		}
+
+		// Send the list of users in the channel to the client
+		std::string names_list = channel.get_names_list();
+		client->append_response_buffer("353 " + client->get_nickname() + " = " + channel_name + " :" + names_list + "\r\n");
+		client->append_response_buffer("366 " + client->get_nickname() + " " + channel_name + " :End of /NAMES list\r\n");
+	}
+}
+
+
+void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params)
+{
+	if (params.size() < 2)
+	{
+		client->append_response_buffer("461 * PRIVMSG :Not enough parameters\r\n");
+		return;
+	}	
+	std::string target_name = params[0];
+	std::string message = params[1];	
+	// Check if the target is a channel or a user
+	if (target_name[0] == '#')
+	{
+		// Target is a channel
+		std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(target_name);
+		if (channel_it == _name_to_channel.end())
+		{
+			client->append_response_buffer("403 " + client->get_nickname() + " " + target_name + " :No such channel\r\n");
+			return;
+		}	
+		Channel& channel = channel_it->second;
+		if (!channel.contains_client(client))
+		{
+			client->append_response_buffer("404 " + client->get_nickname() + " " + target_name + " :Cannot send to channel\r\n");
+			return;
+		}	
+		// Relay the message to all clients in the channel
+		const std::vector<Client*>& clients_in_channel = channel.get_clients();
+		for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
+		{
+			Client* client_in_channel = *it;
+			if (client_in_channel != client)
+			{
+				std::string msg_to_send = ":" + client->get_nickname() + " PRIVMSG " + target_name + " :" + message + "\r\n";
+				client_in_channel->append_response_buffer(msg_to_send);
+			}
+		}
+	}
+	else
+	{
+		Client* target_client = _find_client_by_nickname(target_name);
+		if (target_client == nullptr)
+		{
+			client->append_response_buffer("401 " + client->get_nickname() + " " + target_name + " :No such nick\r\n");
+			return;
+		}
+		std::string msg_to_send = ":" + client->get_nickname() + " PRIVMSG " + target_name + " :" + message + "\r\n";
+		target_client->append_response_buffer(msg_to_send);
+	}
+}
+
+
+
+void Server::_cmd_quit(Client* client, const std::vector<std::string>& params)
+{
+	std::string quit_message = "Client Quit";
+	if (params.size() >= 1)
+	{
+		quit_message = params[0];
+	}
+	// Notify all channels the client is part of
+	_send_quit_message_to_channels(client, quit_message);
+	// Remove the client from the server
+	_remove_client(client->get_fd());
+}
+
+
+void Server::_cmd_op(Client* client, const std::vector<std::string>& params)
+{
+	if (params.size() < 2)
+	{
+		client->append_response_buffer("461 * OP :Not enough parameters\r\n");
+		return;
+	}
+	std::string channel_name = params[0];
+	std::string target_nickname = params[1];
+	// Check if the channel exists
+	std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(channel_name);
+	if (channel_it == _name_to_channel.end())
+	{
+		client->append_response_buffer("403 " + client->get_nickname() + " " + channel_name + " :No such channel\r\n");
+		return;
+	}
+	Channel& channel = channel_it->second;
+	// Check if the client is an operator of the channel
+	if (!channel.is_operator(client->get_nickname()))
+	{
+		client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
+		return;
+	}
+	// Grant operator status to the target user
+	channel.add_operator(target_nickname);
+	// Notify users in the channel
+	std::string op_msg = ":" + client->get_nickname() + " MODE " + channel_name + " +o " + target_nickname + "\r\n";
+	for (Client* user_in_channel : channel.get_clients())
+	{
+		user_in_channel->append_response_buffer(op_msg);
+	}
 }
