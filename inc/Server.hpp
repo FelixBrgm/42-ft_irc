@@ -52,6 +52,7 @@ class Server
 
 
 		void _send_message_to_channel_members(Client *client, Channel *channel, const std::string& message);
+		void _broadcast_to_all_joined_channels(Client *client, const std::string& message);
 
 		void _unexpected_client_disconnection(Client* client);
 		Client* _find_client_by_nickname(const std::string& nickname);

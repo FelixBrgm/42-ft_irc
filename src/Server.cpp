@@ -301,6 +301,17 @@ void	Server::_parse_incoming_data(int fd)
 }
 
 
+void Server::_broadcast_to_all_joined_channels(Client *client, const std::string& message)
+{
+	std::map<std::string, Channel*> joined_channels = client->get_joined_channels();
+	for (std::map<std::string, Channel*>::iterator it = joined_channels.begin(); it != joined_channels.end(); ++it)
+	{
+		Channel* channel = it->second;
+		_send_message_to_channel_members(client, channel, message);
+	}
+}
+
+
 // Cmd's Helpers
 void Server::_send_message_to_channel_members(Client *client, Channel *channel, const std::string& message)
 {
@@ -426,63 +437,62 @@ void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 	// valid password
 	client->proceed_registration_status();
 };
-
-void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
+void Server::_cmd_nick(Client* client, std::vector<std::string> params)
 {
+    if (client->get_status() == pass)
+    {
+        client->append_response_buffer("451 :You have not registered\r\n");
+        return;
+    }
 
-	if (client->get_status() == pass)
-	{
-		client->append_response_buffer("451 :You have not registered\r\n");
-		return;
-	}
+    if (params.size() == 0)
+    {
+        client->append_response_buffer("431 :No nickname given\r\n");
+        return;
+    }
 
-	if (params.size() == 0)
-	{
+    std::string new_nickname = params[0];
+    if (!_is_valid_nickname(new_nickname))
+    {
+        client->append_response_buffer("432 " + new_nickname + " :Erroneous nickname\r\n");
+        return;
+    }
 
-		client->append_response_buffer("431 :No nickname given\r\n");
-		return;
-	}
- 
-	std::string new_nickname = params[0];    
-	if (!_is_valid_nickname(new_nickname))
-	{
+    if (_username_already_exists(new_nickname))
+    {
+        // Handle nickname in use
+        client->append_response_buffer("433 " + new_nickname + " :Nickname is already in use\r\n");
+        return;
+    }
 
-		client->append_response_buffer("432 " + new_nickname + " :Erroneous nickname\r\n");
-		return;
-	}
+    // Update the client's nickname
+    std::string old_nickname = client->get_nickname();
+    client->set_nickname(new_nickname);
 
-	if (_username_already_exists(new_nickname))
-	{
-		// Handle nickname collision
-		client->append_response_buffer("436 " + new_nickname + " :Nickname collision KILL\r\n");
+    if (old_nickname.size() != 0)
+    {
+        std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), old_nickname);
+        if (it != _taken_usernames.end())
+            _taken_usernames.erase(it);
+    }
 
-		_disconnect_client(client, "Nickname collision KILL");
-		return;
-	}	
+    _taken_usernames.push_back(new_nickname);
 
+    // If the client was already registered, send a notification to other users in the same channels
+    if (client->get_status() == registered)
+    {
+        // Notify other users in the same channels about the nickname change
+        std::string nick_change_msg = ":" + old_nickname + " NICK " + new_nickname + "\r\n";
+        client->append_response_buffer(nick_change_msg);
 
-	// Update the client's nickname
-	std::string old_nickname = client->get_nickname();
-	client->set_nickname(new_nickname);	
+        _broadcast_to_all_joined_channels(client, nick_change_msg);
+        return;
+    }
 
-	std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), old_nickname);
-	if (it != _taken_usernames.end())
-		_taken_usernames.erase(it);
-	
-	_taken_usernames.push_back(new_nickname);
-
-	// If the client was already registered, send a notification to other users in the same channels
-	if (client->get_status() == registered)
-	{
-		// Notify other users in the same channels about the nickname change
-		return;
-	}
-
-	// if status is nick we proceed to user
-	if (client->get_status() == nick)
-		client->proceed_registration_status();
-	
-};
+    // if status is nick we proceed to user
+    if (client->get_status() == nick)
+        client->proceed_registration_status();
+}
 
 void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 {
@@ -631,21 +641,17 @@ void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params
 void Server::_disconnect_client(Client* client, std::string quit_message)
 {
 	// Send a quit message to all channels the client is in + remove client from all channels it is in
-	std::map<std::string, Channel*> joined_channels = client->get_joined_channels();
 	std::string quit_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " QUIT :" + quit_message + "\r\n";
-	for (std::map<std::string, Channel*>::iterator it = joined_channels.begin(); it != joined_channels.end(); ++it)
-	{
-		Channel* channel = it->second;
-		_send_message_to_channel_members(client, channel, quit_msg);
-		channel->remove_client(client);
-		channel->remove_operator(client->get_nickname());
-	}
+	_broadcast_to_all_joined_channels(client, quit_msg);
 
 	// Remove the client from the taken username
 	int client_fd = client->get_fd();
-	std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), _fd_to_client[client_fd].get_nickname());
-	if (it != _taken_usernames.end())
-		_taken_usernames.erase(it);
+	if (client->get_nickname().size() != 0)
+	{
+		std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), _fd_to_client[client_fd].get_nickname());
+		if (it != _taken_usernames.end())
+			_taken_usernames.erase(it);
+	}
 
     // Remove the client from the _fd_to_client map
     _fd_to_client.erase(client_fd);
