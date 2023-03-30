@@ -301,6 +301,8 @@ void	Server::_parse_incoming_data(int fd)
 			_cmd_privmsg(&client, params);
 		else if (command == std::string("QUIT"))
 			_cmd_quit(&client, params);
+		else if (command == std::string("MODE"))
+			_cmd_mode(&client, params);
 		else
 		{
 			client.append_response_buffer(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
@@ -550,6 +552,13 @@ void	Server::_cmd_ping(Client* client, std::vector<std::string> params)
 
 void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 {
+
+    if (client->get_status() != registered)
+    {
+        client->append_response_buffer("451 :You have not registered\r\n");
+        return;
+    }
+
 	if (params.size() < 1)
 	{
 		client->append_response_buffer("461 * JOIN :Not enough parameters\r\n");
@@ -576,6 +585,11 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 		// Check if the client is banned from the channel
 		Channel& channel = _name_to_channel[channel_name];
 
+		if (channel.contains_client(client) == true)
+		{
+			return;
+		}
+
 		if (channel.is_banned(client->get_nickname()))
 		{
 			client->append_response_buffer("474 " + client->get_nickname() + " " + channel_name + " :Cannot join channel (+b)\r\n");
@@ -596,6 +610,13 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 
 void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params)
 {
+
+    if (client->get_status() != registered)
+    {
+        client->append_response_buffer("451 :You have not registered\r\n");
+        return;
+    }
+
 	if (params.size() < 2)
 	{
 		client->append_response_buffer("461 * PRIVMSG :Not enough parameters\r\n");
@@ -689,69 +710,39 @@ void Server::_cmd_quit(Client* client, const std::vector<std::string>& params)
 	_disconnect_client(client, quit_message);
 }
 
-void Server::_cmd_op(Client* client, const std::vector<std::string>& params)
-{
-	if (params.size() < 2)
-	{
-		client->append_response_buffer("461 * OP :Not enough parameters\r\n");
-		return;
-	}
-	std::string channel_name = params[0];
-	std::string target_nickname = params[1];
-	// Check if the channel exists
-	std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(channel_name);
-	if (channel_it == _name_to_channel.end())
-	{
-		client->append_response_buffer("403 " + client->get_nickname() + " " + channel_name + " :No such channel\r\n");
-		return;
-	}
-	Channel& channel = channel_it->second;
-	// Check if the target user exists
-	Client* target_client = _find_client_by_nickname(target_nickname);
-	if (target_client == nullptr)
-	{
-		client->append_response_buffer("401 " + client->get_nickname() + " " + target_nickname + " :No such nick\r\n");
-		return;
-	}
-	// Check if the client is an operator of the channel
-	if (!channel.is_operator(client->get_nickname()))
-	{
-		client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
-		return;
-	}
-	// Grant operator status to the target user
-	channel.add_operator(target_nickname);
-	// Notify users in the channel
-	std::string op_msg = ":" + client->get_nickname() + " MODE " + channel_name + " +o " + target_nickname + "\r\n";
-	const std::vector<Client*>& clients_in_channel = channel.get_clients();
-	for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
-	{
-		Client* user_in_channel = *it;
-		user_in_channel->append_response_buffer(op_msg);
-	}
-}
-
 
 void Server::_cmd_mode(Client* client, const std::vector<std::string>& params)
 {
-	if (params.size() < 1)
-	{
-		client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-		return;
-	}
-	std::string target = params[0];
-	if (target[0] == '#' || target[0] == '&') // Channel mode
-	{
-		_cmd_channel_mode(client, params);
-	}
-	else // User mode
-	{
-		_cmd_user_mode(client, params);
-	}
+	if (client->get_status() != registered)
+    {
+        client->append_response_buffer("451 :You have not registered\r\n");
+        return;
+    }
+
+    if (params.size() < 1)
+    {
+        client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+        return;
+    }
+    std::string target = params[0];
+    if (target[0] == '#' || target[0] == '&') // Channel mode
+    {
+        _cmd_channel_mode(client, params);
+    }
+    else // User mode
+    {
+        client->append_response_buffer("502 " + client->get_nickname() + " :Cannot change mode for other users\r\n");
+    }
 }
 
 void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& params)
 {
+	if (client->get_status() != registered)
+    {
+        client->append_response_buffer("451 :You have not registered\r\n");
+        return;
+    }
+
     if (params.size() < 2)
     {
         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
@@ -783,14 +774,18 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
     std::string target_nickname;
 
 	std::stringstream mode_msg_changes;
-
     for (size_t i = 0; i < mode_string.length(); ++i)
     {
         char mode_char = mode_string[i];
 
         switch (mode_char)
         {
-            // ... (same code as before for '+' and '-')
+            case '+':
+                add_mode = true;
+                break;
+            case '-':
+                add_mode = false;
+                break;
             case 'o':
                 if (params.size() >= 3)
                 {
@@ -802,10 +797,6 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                 {
                     client->append_response_buffer("461 * MODE :Not enough parameters for +o or -o\r\n");
                 }
-                break;
-            case 'm':
-                // channel.set_moderated(add_mode);
-                mode_msg_changes << (add_mode ? "+m" : "-m") << " ";
                 break;
             case 'b':
                 if (params.size() >= 3)
@@ -820,29 +811,15 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                 }
                 break;
             default:
-				// Unrecognized mode character; send an error message
-				client->append_response_buffer("501 " + client->get_nickname() + " :Unknown MODE flag\r\n");
-				break;
+                // Unrecognized mode character; send an error message
+                client->append_response_buffer("501 " + client->get_nickname() + " :Unknown MODE flag\r\n");
+                break;
         }
     }
-
     // Notify users in the channel about the mode change
     std::string mode_msg = ":" + client->get_nickname() + " MODE " + channel_name + " " + mode_msg_changes.str() + "\r\n";
-
-    const std::vector<Client*>& clients_in_channel = channel.get_clients();
-    for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
-    {
-        Client* user_in_channel = *it;
-        user_in_channel->append_response_buffer(mode_msg);
-    }
-}
-
-void Server::_cmd_user_mode(Client* client, const std::vector<std::string>& params)
-{
-	// TODO: Implement user mode changes
-	client = nullptr;
-	if (client)
-		params.size();
+	client->append_response_buffer(mode_msg);
+	_send_message_to_channel_members(client, &channel, mode_msg);
 }
 
 

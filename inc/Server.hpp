@@ -65,7 +65,6 @@ class Server
 		std::vector<std::string> _split_str(const std::string& str, char delimiter);
 
 		void	_cmd_channel_mode(Client* client, const std::vector<std::string>& params);
-		void	_cmd_user_mode(Client* client, const std::vector<std::string>& params);
 	
 		// error messages
 
