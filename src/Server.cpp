@@ -179,7 +179,7 @@ void	Server::_parse_incoming_data(int fd)
 	char buf[MAX_MESSAGE_LENGHT] = {0};
 	// read incoming msg
 	std::size_t received_bytes = recv(fd, buf, MAX_MESSAGE_LENGHT, 0);
-	Client&	client = _fd_to_client[fd];
+	Client& client = _fd_to_client[fd];
 
 	if (received_bytes == 0)
 	{
@@ -189,8 +189,16 @@ void	Server::_parse_incoming_data(int fd)
 
 	if (received_bytes < 0)
 	{
-		_unexpected_client_disconnection(&client);
-		return;
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
+		{
+			// No data available to be read, so just return without disconnecting the client.
+			return;
+		}
+		else
+		{
+			_unexpected_client_disconnection(&client);
+			return;
+		}
 	}
 	
 	client.append_in_buffer(buf);
@@ -282,23 +290,31 @@ void	Server::_parse_incoming_data(int fd)
 			_cmd_join(&client, params);
 		else if (command == std::string("PRIVMSG"))
 			_cmd_privmsg(&client, params);
+		else if (command == std::string("QUIT"))
+			_cmd_quit(&client, params);
 		else
 		{
 			client.append_response_buffer(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
 		}
-
-
-
-		// Client is registered
-
-		// to send back just write to the fd of the client     
 	}
 	
 }
 
 
 // Cmd's Helpers
+void Server::_send_message_to_channel_members(Client *client, Channel *channel, const std::string& message)
+{
+    // Get the clients in the channel
+    const std::vector<Client*>& clients_in_channel = channel->get_clients();
 
+    // Iterate through the clients and send the message to each of them
+    for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
+    {
+        Client* user_in_channel = *it;
+		if (client != user_in_channel)
+        	user_in_channel->append_response_buffer(message);
+    }
+}
 
 
 
@@ -306,51 +322,7 @@ void	Server::_parse_incoming_data(int fd)
 
 void Server::_unexpected_client_disconnection(Client* client)
 {
-    _send_quit_message_to_channels(client, "Client disconnected unexpectedly");
-    _remove_client(client->get_fd());
-}
-
-
-void Server::_remove_client(int client_fd)
-{
-
-    // Remove the client from the taken username
-	std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), _fd_to_client[client_fd].get_nickname());
-	if (it != _taken_usernames.end())
-		_taken_usernames.erase(it);
-
-    // Remove the client from the _fd_to_client map
-    _fd_to_client.erase(client_fd);
-
-    // Remove the corresponding pollfd from the _pollfds vector
-    for (std::vector<struct pollfd>::iterator it = _pollfds.begin(); it != _pollfds.end(); ++it)
-    {
-        if (it->fd == client_fd)
-        {
-            _pollfds.erase(it);
-            break;
-        }
-    }
-	_nfds--;
-    // Close the client's file descriptor
-    close(client_fd);
-}
-
-
-void Server::_send_quit_message_to_channels(Client* client, const std::string& quit_message)
-{
-	std::map<std::string, Channel*> joined_channels = client->get_joined_channels();
-	std::string quit_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " QUIT :" + quit_message + "\r\n";
-	for (std::map<std::string, Channel*>::iterator it = joined_channels.begin(); it != joined_channels.end(); ++it)
-	{
-		Channel* channel = it->second;
-		const std::vector<Client*>& clients_in_channel = channel->get_clients();
-		for (std::vector<Client*>::const_iterator cit = clients_in_channel.begin(); cit != clients_in_channel.end(); ++cit)
-		{
-			Client* client_in_channel = *cit;
-			client_in_channel->append_response_buffer(quit_msg);
-		}
-	}
+	_disconnect_client(client, "Client disconnected unexpectedly");
 }
 
 
@@ -433,7 +405,6 @@ bool Server::_is_valid_nickname(const std::string& nickname)
 
 void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 {
-
     if (client->get_status() != pass)
     {
         client->append_response_buffer("462 :You may not reregister\r\n");
@@ -459,7 +430,6 @@ void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 {
 
-
 	if (client->get_status() == pass)
 	{
 		client->append_response_buffer("451 :You have not registered\r\n");
@@ -471,7 +441,8 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 
 		client->append_response_buffer("431 :No nickname given\r\n");
 		return;
-	}    
+	}
+ 
 	std::string new_nickname = params[0];    
 	if (!_is_valid_nickname(new_nickname))
 	{
@@ -485,10 +456,7 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 		// Handle nickname collision
 		client->append_response_buffer("436 " + new_nickname + " :Nickname collision KILL\r\n");
 
-		// disconnect client
-		// std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), new_nickname);
-		// if (it != _taken_usernames.end())
-		// 	_taken_usernames.erase(it);
+		_disconnect_client(client, "Nickname collision KILL");
 		return;
 	}	
 
@@ -507,6 +475,7 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 	if (client->get_status() == registered)
 	{
 		// Notify other users in the same channels about the nickname change
+		return;
 	}
 
 	// if status is nick we proceed to user
@@ -567,6 +536,7 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 		client->append_response_buffer("461 * JOIN :Not enough parameters\r\n");
 		return;
 	}
+
 	std::vector<std::string> channels = _split_str(params[0], ',');
 	std::vector<std::string> keys;
 	if (params.size() > 1)
@@ -584,22 +554,20 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 			// Grant operator status to the creator
 			_name_to_channel[channel_name].add_operator(client->get_nickname());
 		}
-		Channel& channel = _name_to_channel[channel_name];
 		// Check if the client is banned from the channel
+		Channel& channel = _name_to_channel[channel_name];
+
 		if (channel.is_banned(client->get_nickname()))
 		{
 			client->append_response_buffer("474 " + client->get_nickname() + " " + channel_name + " :Cannot join channel (+b)\r\n");
+			_name_to_channel.erase(channel_name);
 			return;
 		}
+
 		channel.add_client(client);
 		client->join_channel(channel_name, &channel);
 		std::string join_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " JOIN " + channel_name + "\r\n";
-		const std::vector<Client*>& clients_in_channel = channel.get_clients();
-		for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
-		{
-			Client* user_in_channel = *it;
-			user_in_channel->append_response_buffer(join_msg);
-		}
+		_send_message_to_channel_members(client, &channel,join_msg);
 		// Send the list of users in the channel to the client
 		std::string names_list = channel.get_names_list();
 		client->append_response_buffer("353 " + client->get_nickname() + " = " + channel_name + " :" + names_list + "\r\n");
@@ -631,7 +599,9 @@ void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params
 		{
 			client->append_response_buffer("404 " + client->get_nickname() + " " + target_name + " :Cannot send to channel\r\n");
 			return;
-		}	
+		}
+
+
 		// Relay the message to all clients in the channel
 		const std::vector<Client*>& clients_in_channel = channel.get_clients();
 		for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
@@ -658,6 +628,41 @@ void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params
 }
 
 
+void Server::_disconnect_client(Client* client, std::string quit_message)
+{
+	// Send a quit message to all channels the client is in + remove client from all channels it is in
+	std::map<std::string, Channel*> joined_channels = client->get_joined_channels();
+	std::string quit_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " QUIT :" + quit_message + "\r\n";
+	for (std::map<std::string, Channel*>::iterator it = joined_channels.begin(); it != joined_channels.end(); ++it)
+	{
+		Channel* channel = it->second;
+		_send_message_to_channel_members(client, channel, quit_msg);
+		channel->remove_client(client);
+		channel->remove_operator(client->get_nickname());
+	}
+
+	// Remove the client from the taken username
+	int client_fd = client->get_fd();
+	std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), _fd_to_client[client_fd].get_nickname());
+	if (it != _taken_usernames.end())
+		_taken_usernames.erase(it);
+
+    // Remove the client from the _fd_to_client map
+    _fd_to_client.erase(client_fd);
+
+    // Remove the corresponding pollfd from the _pollfds vector
+    for (std::vector<struct pollfd>::iterator it = _pollfds.begin(); it != _pollfds.end(); ++it)
+    {
+        if (it->fd == client_fd)
+        {
+            _pollfds.erase(it);
+            break;
+        }
+    }
+	_nfds--;
+    // Close the client's file descriptor
+    close(client_fd);
+}
 
 void Server::_cmd_quit(Client* client, const std::vector<std::string>& params)
 {
@@ -666,10 +671,7 @@ void Server::_cmd_quit(Client* client, const std::vector<std::string>& params)
 	{
 		quit_message = params[0];
 	}
-	// Notify all channels the client is part of
-	_send_quit_message_to_channels(client, quit_message);
-	// Remove the client from the server
-	_remove_client(client->get_fd());
+	_disconnect_client(client, quit_message);
 }
 
 void Server::_cmd_op(Client* client, const std::vector<std::string>& params)

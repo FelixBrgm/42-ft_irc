@@ -7,11 +7,11 @@
 class Channel
 {
     private:
-		std::string					_name;
-		std::vector<Client*>		_channel_clients;
-		std::set<std::string>		_channel_operators;
-		bool						_is_moderated;
-		std::set<std::string>		_banned_nicks;
+		std::string						_name;
+		std::vector<Client*>			_channel_clients;
+		bool							_is_moderated;
+		std::vector<std::string>		_channel_operators;
+		std::vector<std::string>		_banned_nicks;
 
     public:
         Channel();

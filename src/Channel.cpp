@@ -1,15 +1,10 @@
 #include "../inc/Channel.hpp"
 
-
+#include <algorithm>
 
 Channel::Channel() {};
 Channel::Channel(std::string name) : _name(name) {};
 Channel::~Channel() {};
-
-void	Channel::add_client(Client *client)
-{
-	_channel_clients.push_back(client);
-}
 
 std::string Channel::get_names_list()
 {
@@ -57,20 +52,36 @@ const std::vector<Client*>& Channel::get_clients() const
 	return _channel_clients;
 }
 
+void	Channel::add_client(Client *client)
+{
+	_channel_clients.push_back(client);
+}
+
 
 void Channel::add_operator(const std::string& nickname)
 {
-    _channel_operators.insert(nickname);
+    _channel_operators.push_back(nickname);
 }
 
 void Channel::remove_operator(const std::string& nickname)
 {
-    _channel_operators.erase(nickname);
+	std::vector<std::string>::iterator it = std::find(_channel_operators.begin(), _channel_operators.end(), nickname);
+	if (it != _channel_operators.end())
+		_channel_operators.erase(it);
 }
+
+void Channel::remove_client(Client *client)
+{
+	std::vector<Client*>::iterator it = std::find(_channel_clients.begin(), _channel_clients.end(), client);
+	if (it != _channel_clients.end())
+		_channel_clients.erase(it);
+}
+
 
 bool Channel::is_operator(const std::string& nickname) const
 {
-    return _channel_operators.find(nickname) != _channel_operators.end();
+	std::vector<std::string>::const_iterator it = std::find(_channel_operators.begin(), _channel_operators.end(), nickname);
+    return it != _channel_operators.end();
 }
 
 void Channel::set_moderated(bool is_moderated)
@@ -80,15 +91,18 @@ void Channel::set_moderated(bool is_moderated)
 
 void Channel::add_ban(const std::string& nickname)
 {
-    _banned_nicks.insert(nickname);
+    _banned_nicks.push_back(nickname);
 }
 
 void Channel::remove_ban(const std::string& nickname)
 {
-    _banned_nicks.erase(nickname);
+	std::vector<std::string>::iterator it = std::find(_banned_nicks.begin(), _banned_nicks.end(), nickname);
+	if (it != _banned_nicks.end())
+		_banned_nicks.erase(it);
 }
 
 bool Channel::is_banned(const std::string& nickname) const
 {
-    return _banned_nicks.find(nickname) != _banned_nicks.end();
+	std::vector<std::string>::const_iterator it = std::find(_banned_nicks.begin(), _banned_nicks.end(), nickname);
+    return it != _banned_nicks.end();
 }

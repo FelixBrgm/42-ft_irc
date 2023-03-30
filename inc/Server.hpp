@@ -46,6 +46,13 @@ class Server
 
 
 		// helpers for commands
+
+		void _disconnect_client(Client* client, std::string quit_message);
+
+
+
+		void _send_message_to_channel_members(Client *client, Channel *channel, const std::string& message);
+
 		void _unexpected_client_disconnection(Client* client);
 		Client* _find_client_by_nickname(const std::string& nickname);
 		void _send_quit_message_to_channels(Client* client, const std::string& quit_message);;
