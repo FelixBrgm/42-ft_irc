@@ -84,10 +84,6 @@ bool Channel::is_operator(const std::string& nickname) const
     return it != _channel_operators.end();
 }
 
-void Channel::set_moderated(bool is_moderated)
-{
-    _is_moderated = is_moderated;
-}
 
 void Channel::add_ban(const std::string& nickname)
 {

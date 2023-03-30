@@ -60,7 +60,12 @@ bool Client::is_incoming_msg_complete() const
 
 bool Client::is_incoming_msg_too_long() const
 {
-	return MAX_MESSAGE_LENGHT < _in_buffer.length();
+	std::size_t index = _in_buffer.find(std::string("\r\n"));
+	if (index != std::string::npos)
+	{
+		return index >= (MAX_MESSAGE_LENGHT - 1);
+	}
+	return _in_buffer.length() > MAX_MESSAGE_LENGHT - 2;
 }
 
 ClientStatus Client::get_status() const
@@ -96,7 +101,7 @@ void Client::set_realname(std::string& realname)
 }
 
 
-void Client::clear_msg_in_buffer()
+void Client::cut_msg_in_buffer()
 {
 	std::string::size_type index = _in_buffer.find(std::string("\r\n"));
 	if (index != std::string::npos)

@@ -9,7 +9,6 @@ class Channel
     private:
 		std::string						_name;
 		std::vector<Client*>			_channel_clients;
-		bool							_is_moderated;
 		std::vector<std::string>		_channel_operators;
 		std::vector<std::string>		_banned_nicks;
 
@@ -30,7 +29,6 @@ class Channel
 		bool is_operator(const std::string& nickname) const;
 
 
-		void set_moderated(bool moderated);
 		void add_ban(const std::string& nickname);
 		void remove_ban(const std::string& nickname);
 		bool is_banned(const std::string& nickname) const;

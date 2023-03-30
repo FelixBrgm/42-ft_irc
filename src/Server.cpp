@@ -176,39 +176,48 @@ void Server::_accept_new_connection()
 
 void	Server::_parse_incoming_data(int fd)
 {
-	char buf[MAX_MESSAGE_LENGHT] = {0};
-	// read incoming msg
-	std::size_t received_bytes = recv(fd, buf, MAX_MESSAGE_LENGHT, 0);
-	Client& client = _fd_to_client[fd];
+    Client& client = _fd_to_client[fd];
 
-	if (received_bytes == 0)
+	while (true)
 	{
-		_unexpected_client_disconnection(&client);
-		return;
-	}
+		char buf[MAX_MESSAGE_LENGHT] = {0};
+		// read incoming msg
+		int received_bytes = recv(fd, buf, MAX_MESSAGE_LENGHT, 0);
 
-	if (received_bytes < 0)
-	{
-		if (errno == EWOULDBLOCK || errno == EAGAIN)
-		{
-			// No data available to be read, so just return without disconnecting the client.
-			return;
-		}
-		else
+
+		if (received_bytes == 0)
 		{
 			_unexpected_client_disconnection(&client);
 			return;
 		}
-	}
-	
-	client.append_in_buffer(buf);
 
+
+		if (received_bytes < 0)
+		{
+			if (errno == EWOULDBLOCK || errno == EAGAIN)
+			{
+				// No more data available, break the loop
+				break;
+			}
+			else
+			{
+				_unexpected_client_disconnection(&client);
+				return;
+			}
+		}
+
+		client.append_in_buffer(buf);
+	}
 
 	while (true)
 	{
 		// (check if the message is bigger then 512) -> send error
 		if (client.is_incoming_msg_too_long())
-			;
+		{
+			client.append_response_buffer("417 :Input line was too long\r\n");
+			return;
+		}
+		
 
 		// msg needs to end with \r\n
 		if (!client.is_incoming_msg_complete())
@@ -218,7 +227,7 @@ void	Server::_parse_incoming_data(int fd)
 
 		std::string message = client.get_in_buffer();
 		std::cout << "Received:" <<message.substr(0, message.find("\r\n")) << std::endl;
-		client.clear_msg_in_buffer();
+		client.cut_msg_in_buffer();
 		std::string command;
 		std::vector<std::string> params;
 		std::istringstream iss(message);
@@ -795,7 +804,7 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                 }
                 break;
             case 'm':
-                channel.set_moderated(add_mode);
+                // channel.set_moderated(add_mode);
                 mode_msg_changes << (add_mode ? "+m" : "-m") << " ";
                 break;
             case 'b':

@@ -65,7 +65,7 @@ class Client
 
 
 
-		void clear_msg_in_buffer();
+		void cut_msg_in_buffer();
 		void clear_out_buffer();
 
 
