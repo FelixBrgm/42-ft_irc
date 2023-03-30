@@ -313,6 +313,12 @@ void Server::_unexpected_client_disconnection(Client* client)
 
 void Server::_remove_client(int client_fd)
 {
+
+    // Remove the client from the taken username
+	std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), _fd_to_client[client_fd].get_nickname());
+	if (it != _taken_usernames.end())
+		_taken_usernames.erase(it);
+
     // Remove the client from the _fd_to_client map
     _fd_to_client.erase(client_fd);
 
@@ -493,7 +499,7 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 
 	std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), old_nickname);
 	if (it != _taken_usernames.end())
-	    _taken_usernames.erase(it);
+		_taken_usernames.erase(it);
 	
 	_taken_usernames.push_back(new_nickname);
 
@@ -554,7 +560,6 @@ void	Server::_cmd_ping(Client* client, std::vector<std::string> params)
 	client->append_response_buffer(response);
 }
 
-// CHECK FOR BANS NOT DONE!!!!
 void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 {
 	if (params.size() < 1)
@@ -568,26 +573,26 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 	{
 		keys = _split_str(params[1], ',');
 	}
-
 	for (size_t i = 0; i < channels.size(); ++i)
 	{
 		const std::string& channel_name = channels[i];
 		std::string key = i < keys.size() ? keys[i] : "";
-
 		if (_name_to_channel.find(channel_name) == _name_to_channel.end())
 		{
 			// Create the channel if it doesn't exist
 			_name_to_channel[channel_name] = Channel(channel_name);
-
 			// Grant operator status to the creator
 			_name_to_channel[channel_name].add_operator(client->get_nickname());
 		}
-
 		Channel& channel = _name_to_channel[channel_name];
-
+		// Check if the client is banned from the channel
+		if (channel.is_banned(client->get_nickname()))
+		{
+			client->append_response_buffer("474 " + client->get_nickname() + " " + channel_name + " :Cannot join channel (+b)\r\n");
+			return;
+		}
 		channel.add_client(client);
 		client->join_channel(channel_name, &channel);
-
 		std::string join_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " JOIN " + channel_name + "\r\n";
 		const std::vector<Client*>& clients_in_channel = channel.get_clients();
 		for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
@@ -595,14 +600,12 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 			Client* user_in_channel = *it;
 			user_in_channel->append_response_buffer(join_msg);
 		}
-
 		// Send the list of users in the channel to the client
 		std::string names_list = channel.get_names_list();
 		client->append_response_buffer("353 " + client->get_nickname() + " = " + channel_name + " :" + names_list + "\r\n");
 		client->append_response_buffer("366 " + client->get_nickname() + " " + channel_name + " :End of /NAMES list\r\n");
 	}
 }
-
 
 void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params)
 {
@@ -710,6 +713,163 @@ void Server::_cmd_op(Client* client, const std::vector<std::string>& params)
 		user_in_channel->append_response_buffer(op_msg);
 	}
 }
+
+
+// void Server::_cmd_mode(Client* client, const std::vector<std::string>& params)
+// {
+// 	if (params.size() < 1)
+// 	{
+// 		client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+// 		return;
+// 	}
+// 	std::string target = params[0];
+// 	if (target[0] == '#' || target[0] == '&') // Channel mode
+// 	{
+// 		_cmd_channel_mode(client, params);
+// 	}
+// 	else // User mode
+// 	{
+// 		_cmd_user_mode(client, params);
+// 	}
+// }
+
+// void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& params)
+// {
+//     if (params.size() < 2)
+//     {
+//         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+//         return;
+//     }
+
+//     std::string channel_name = params[0];
+//     std::string mode_string = params[1];
+
+//     // Check if the channel exists
+//     std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(channel_name);
+//     if (channel_it == _name_to_channel.end())
+//     {
+//         client->append_response_buffer("403 " + client->get_nickname() + " " + channel_name + " :No such channel\r\n");
+//         return;
+//     }
+
+//     Channel& channel = channel_it->second;
+
+//     // Check if the client is an operator of the channel
+//     if (!channel.is_operator(client->get_nickname()))
+//     {
+//         client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
+//         return;
+//     }
+
+//     // Parse the mode string and apply the changes
+//     bool add_mode = true;
+//     std::string target_nickname;
+// 	for (size_t i = 0; i < mode_string.length(); ++i)
+// 	{
+// 		char mode_char = mode_string[i];
+
+// 		switch (mode_char)
+// 		{
+// 			case '+':
+// 				add_mode = true;
+// 				break;
+// 			case '-':
+// 				add_mode = false;
+// 				break;
+// 			case 'o':
+// 				if (params.size() >= 3)
+// 				{
+// 					target_nickname = params[2];
+// 					add_mode ? channel.add_operator(target_nickname) : channel.remove_operator(target_nickname);
+
+// 					// Notify users in the channel
+// 					{
+// 						std::string op_msg = ":" + client->get_nickname() + " MODE " + channel_name + " " + (add_mode ? "+o " : "-o ") + target_nickname + "\r\n";
+// 						const std::vector<Client*>& clients_in_channel = channel.get_clients();
+// 						for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
+// 						{
+// 							Client* user_in_channel = *it;
+// 							user_in_channel->append_response_buffer(op_msg);
+// 						}
+// 					}
+// 				}
+// 				else
+// 				{
+// 					client->append_response_buffer("461 * MODE :Not enough parameters for +o or -o\r\n");
+// 				}
+// 				break;
+// 			case 'm':
+// 				channel.set_moderated(add_mode);
+
+// 				// Notify users in the channel
+// 				{
+// 					std::string mod_msg = ":" + client->get_nickname() + " MODE " + channel_name + " " + (add_mode ? "+m" : "-m") + "\r\n";
+// 					const std::vector<Client*>& clients_in_channel = channel.get_clients();
+// 					for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
+// 					{
+// 						Client* user_in_channel = *it;
+// 						user_in_channel->append_response_buffer(mod_msg);
+// 					}
+// 				}
+// 				break;
+// 			case 'b':
+// 				if (params.size() >= 3)
+// 				{
+// 					target_nickname = params[2];
+// 					add_mode ? channel.add_ban(target_nickname) : channel.remove_ban(target_nickname);
+
+// 					// Notify users in the channel
+// 					{
+// 						std::string ban_msg = ":" + client->get_nickname() + " MODE " + channel_name + " " + (add_mode ? "+b " : "-b ") + target_nickname + "\r\n";
+// 						const std::vector<Client*>& clients_in_channel = channel.get_clients();
+// 						for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
+// 						{
+// 							Client* user_in_channel = *it;
+// 							user_in_channel->append_response_buffer(ban_msg);
+// 						}
+// 					}
+// 				}
+// 				else
+// 				{
+// 					client->append_response_buffer("461 * MODE :Not enough parameters for +b or -b\r\n");
+// 				}
+// 				break;
+// 			default:
+// 				// Unrecognized mode character; send an error message
+// 				client->append_response_buffer("501 " + client->get_nickname() + " :Unknown MODE flag\r\n");
+// 				break;
+// 		}
+// 	}
+
+//     // Notify users in the channel about the mode change
+//     std::string mode_msg = ":" + client->get_nickname() + " MODE " + channel_name + " " + mode_string;
+//     if (!target_nickname.empty())
+//     {
+//         mode_msg += " " + target_nickname;
+//     }
+//     mode_msg += "\r\n";
+
+//     const std::vector<Client*>& clients_in_channel = channel.get_clients();
+//     for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
+//     {
+//         Client* user_in_channel = *it;
+//         user_in_channel->append_response_buffer(mode_msg);
+//     }
+// }
+
+// void Server::_cmd_user_mode(Client* client, const std::vector<std::string>& params)
+// {
+// 	// TODO: Implement user mode changes
+// }
+
+
+
+
+
+
+
+
+
 
 // void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 // {

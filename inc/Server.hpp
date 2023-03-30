@@ -56,7 +56,9 @@ class Server
 		void _welcome_new_user(Client* client);
 		std::vector<std::string> _split_str(const std::string& str, char delimiter);
 
-
+		void	_cmd_channel_mode(Client* client, const std::vector<std::string>& params);
+		void	_cmd_user_mode(Client* client, const std::vector<std::string>& params);
+	
 		// error messages
 
 
@@ -71,6 +73,7 @@ class Server
 		void 	_cmd_quit(Client* client, const std::vector<std::string>& params = std::vector<std::string>());
 		void	_cmd_op(Client* client, const std::vector<std::string>& params);
 		void	_cmd_kick(Client* client, const std::vector<std::string>& params);
+		void	_cmd_mode(Client* client, const std::vector<std::string>& params);
 
 
 	void	_parse(std::string message);
