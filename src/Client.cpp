@@ -40,6 +40,7 @@ Client& Client::operator= (const Client& other)
 
 void Client::append_response_buffer(std::string buffer)
 {
+	std::cout << "out: " << buffer;
 	_response_buffer += buffer;
 }
 

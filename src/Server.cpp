@@ -208,9 +208,12 @@ void	Server::_parse_incoming_data(int fd)
 
 		client.append_in_buffer(buf);
 	}
-
 	while (true)
 	{
+		std::cout << "ASDJOASJKD HBASJKD HBNSAD " << std::endl;
+		std::string message = client.get_in_buffer();
+		std::cout << "FULL: " << message;
+
 		// (check if the message is bigger then 512) -> send error
 		if (client.is_incoming_msg_too_long())
 		{
@@ -225,7 +228,7 @@ void	Server::_parse_incoming_data(int fd)
 
 
 
-		std::string message = client.get_in_buffer();
+		// std::cout << "FULL: " << message;
 		std::cout << "Received:" <<message.substr(0, message.find("\r\n")) << std::endl;
 		client.cut_msg_in_buffer();
 		std::string command;
@@ -303,6 +306,8 @@ void	Server::_parse_incoming_data(int fd)
 			_cmd_quit(&client, params);
 		else if (command == std::string("MODE"))
 			_cmd_mode(&client, params);
+		else if (command == std::string("KICK"))
+			_cmd_kick(&client, params);
 		else
 		{
 			client.append_response_buffer(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
@@ -603,6 +608,7 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 		_send_message_to_channel_members(client, &channel,join_msg);
 		// Send the list of users in the channel to the client
 		std::string names_list = channel.get_names_list();
+		client->append_response_buffer("331 " + client->get_nickname() + " " + channel_name + " :No topic is set\r\n");
 		client->append_response_buffer("353 " + client->get_nickname() + " = " + channel_name + " :" + names_list + "\r\n");
 		client->append_response_buffer("366 " + client->get_nickname() + " " + channel_name + " :End of /NAMES list\r\n");
 	}
@@ -831,39 +837,46 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 
 
 
-// void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
-// {
-// 	if (params.size() < 2)
-// 	{
-// 		client->append_response_buffer("461 * KICK :Not enough parameters\r\n");
-// 		return;
-// 	}
-// 	std::string channel_name = params[0];
-// 	std::string target_nickname = params[1];
-// 	std::string reason = params.size() > 2 ? params[2] : "No reason specified";
-// 	// Check if the client is an operator of the channel
-// 	Channel& channel = _name_to_channel[channel_name];
-// 	if (!channel.is_operator(client->get_nickname()))
-// 	{
-// 		client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
-// 		return;
-// 	}
-// 	// Check if the target user is in the channel
-// 	Client* target_client = _find_client_by_nickname(target_nickname);
-// 	if (target_client == nullptr || !channel.contains_client(target_client))
-// 	{
-// 		client->append_response_buffer("441 " + client->get_nickname() + " " + target_nickname + " " + channel_name + " :They aren't on that channel\r\n");
-// 		return;
-// 	}
-// 	// Remove the target user from the channel
-// 	channel.remove_client(target_client);
-// 	target_client->leave_channel(channel_name);
-// 	// Notify clients in the channel
-// 	std::string kick_msg = ":" + client->get_nickname() + " KICK " + channel_name + " " + target_nickname + " :" + reason + "\r\n";
-// 	for (Client* user_in_channel : channel.get_clients())
-// 	{
-// 		user_in_channel->append_response_buffer(kick_msg);
-// 	}
-// 	// Notify the kicked user
-// 	target_client->append_response_buffer(kick_msg);
-// }
+void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
+{
+	if (params.size() < 2)
+	{
+		client->append_response_buffer("461 * KICK :Not enough parameters\r\n");
+		return;
+	}
+
+	std::string channel_name = params[0];
+	std::string target_nickname = params[1];
+	std::string reason = params.size() > 2 ? params[2] : "No reason specified";
+
+	// Check if the client is an operator of the channel
+	if (!_name_to_channel.count(channel_name))
+	{
+		client->append_response_buffer("403 " + channel_name + " :No such channel\r\n");
+		return;
+	}
+	Channel& channel = _name_to_channel[channel_name];
+
+	if (!channel.is_operator(client->get_nickname()))
+	{
+		client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
+		return;
+	}
+
+	// Check if the target user is in the channel
+	Client* target_client = _find_client_by_nickname(target_nickname);
+	if (target_client == nullptr || !channel.contains_client(target_client))
+	{
+		client->append_response_buffer("441 " + client->get_nickname() + " " + target_nickname + " " + channel_name + " :They aren't on that channel\r\n");
+		return;
+	}
+
+	// Notify all users joined in the channel user
+	std::string kick_msg = ":" + client->get_nickname() + " KICK " + channel_name + " " + target_nickname + " :" + reason + "\r\n";
+	_send_message_to_channel_members(target_client, &channel, kick_msg);
+	target_client->append_response_buffer(kick_msg);
+
+	// Remove the target user from the channel
+	channel.remove_client(target_client);
+	channel.remove_operator(target_client->get_nickname());
+}
