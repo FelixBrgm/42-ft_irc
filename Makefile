@@ -23,6 +23,8 @@
 # rendersourcespath=$(addprefix ./render/, $(rendersources))
 # objectsourcespath=$(addprefix ./objects/, $(objectsources))
 
+
+
 # inputobjs=$(inputsources:.c=.o)
 # utilityobjs=$(utilitysources:.c=.o)
 # renderobjs=$(rendersources:.c=.o)
