@@ -178,7 +178,9 @@ void	Server::_parse_incoming_data(int fd)
 {
     Client& client = _fd_to_client[fd];
 
-	
+	while (true)
+	{
+
 		char buf[MAX_MESSAGE_LENGHT] = {0};
 		// read incoming msg
 		int received_bytes = recv(fd, buf, MAX_MESSAGE_LENGHT, 0);
@@ -206,7 +208,7 @@ void	Server::_parse_incoming_data(int fd)
 		}
 
 		client.append_in_buffer(buf);
-	
+	}
 	while (true)
 	{
 		// (check if the message is bigger then 512) -> send error
