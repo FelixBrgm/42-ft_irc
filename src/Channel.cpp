@@ -34,7 +34,6 @@ std::string Channel::get_names_list()
 }
 
 
-
 bool Channel::contains_client(Client* client) const
 {
     for (std::vector<Client*>::const_iterator it = _channel_clients.begin(); it != _channel_clients.end(); ++it)
