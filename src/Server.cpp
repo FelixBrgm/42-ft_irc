@@ -178,8 +178,7 @@ void	Server::_parse_incoming_data(int fd)
 {
     Client& client = _fd_to_client[fd];
 
-	while (true)
-	{
+	
 		char buf[MAX_MESSAGE_LENGHT] = {0};
 		// read incoming msg
 		int received_bytes = recv(fd, buf, MAX_MESSAGE_LENGHT, 0);
@@ -197,7 +196,7 @@ void	Server::_parse_incoming_data(int fd)
 			if (errno == EWOULDBLOCK || errno == EAGAIN)
 			{
 				// No more data available, break the loop
-				break;
+
 			}
 			else
 			{
@@ -207,13 +206,9 @@ void	Server::_parse_incoming_data(int fd)
 		}
 
 		client.append_in_buffer(buf);
-	}
+	
 	while (true)
 	{
-		std::cout << "ASDJOASJKD HBASJKD HBNSAD " << std::endl;
-		std::string message = client.get_in_buffer();
-		std::cout << "FULL: " << message;
-
 		// (check if the message is bigger then 512) -> send error
 		if (client.is_incoming_msg_too_long())
 		{
@@ -221,16 +216,18 @@ void	Server::_parse_incoming_data(int fd)
 			return;
 		}
 		
-
 		// msg needs to end with \r\n
 		if (!client.is_incoming_msg_complete())
 			return;
 
-
-
 		// std::cout << "FULL: " << message;
-		std::cout << "Received:" <<message.substr(0, message.find("\r\n")) << std::endl;
+		std::string buffer = client.get_in_buffer();
+
+		std::string message = buffer.substr(0, buffer.find("\r\n"));
+		std::cout << "Message from " << client.get_nickname() << ": " << message << std::endl;
 		client.cut_msg_in_buffer();
+
+
 		std::string command;
 		std::vector<std::string> params;
 		std::istringstream iss(message);
