@@ -53,8 +53,8 @@ void Server::start()
 		throw std::runtime_error("Failed To Set Socket To Be Reusable");
 
 	// Set O_NONBLOCK flag to enable nonblocking I/O
-	int flags = fcntl(_listenerfd, F_GETFL, 0);
-	if (fcntl(_listenerfd, F_SETFL, flags | O_NONBLOCK) < 0)
+
+	if (fcntl(_listenerfd, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Failed To Set Socket To Non-Blocking");
 
 	// Set SO_NOSIGPIPE option to prevent SIGPIPE signals on write errors
@@ -147,8 +147,8 @@ void Server::_accept_new_connection()
 		}
 
 		// Set O_NONBLOCK flag to enable nonblocking I/O
-		int flags = fcntl(new_socket_fd, F_GETFL, 0);
-		if (fcntl(new_socket_fd, F_SETFL, flags | O_NONBLOCK) < 0)
+
+		if (fcntl(new_socket_fd, F_SETFL, O_NONBLOCK) < 0)
 		{
 				std::cerr << "Failed To Set Socket To Non-Blocking -> Client Could Not Connect" << std::endl;
 				return;
