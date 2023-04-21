@@ -102,3 +102,54 @@ bool Channel::is_banned(const std::string& nickname) const
 	std::vector<std::string>::const_iterator it = std::find(_banned_nicks.begin(), _banned_nicks.end(), nickname);
     return it != _banned_nicks.end();
 }
+
+
+  const std::string& getPassword() const 
+  {
+        return _password;
+    }
+    void setPassword(const std::string& password) 
+	{
+        _password = password;
+    }
+
+    // Getter and setter for _invited_nicks
+    const std::vector<std::string>& getInvitedNicks() const 
+	{
+        return _invited_nicks;
+    }
+    void setInvitedNicks(const std::vector<std::string>& invitedNicks) {
+        _invited_nicks = invitedNicks;
+    }
+
+    // Getter and setter for _is_invite_only
+    bool isInviteOnly() const {
+        return _is_invite_only;
+    }
+    void setInviteOnly(bool isInviteOnly) {
+        _is_invite_only = isInviteOnly;
+    }
+
+    // Getter and setter for _topic
+    const std::string& getTopic() const {
+        return _topic;
+    }
+    void setTopic(const std::string& topic) {
+        _topic = topic;
+    }
+
+    // Getter and setter for _is_topic_only_changeable_by_operators
+    bool isTopicOnlyChangeableByOperators() const {
+        return _is_topic_only_changeable_by_operators;
+    }
+    void setTopicOnlyChangeableByOperators(bool isTopicOnlyChangeableByOperators) {
+        _is_topic_only_changeable_by_operators = isTopicOnlyChangeableByOperators;
+    }
+
+    // Getter and setter for _user_limit
+    unsigned short getUserLimit() const {
+        return _user_limit;
+    }
+    void setUserLimit(unsigned short userLimit) {
+        _user_limit = userLimit;
+    }

@@ -586,7 +586,6 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 			// Grant operator status to the creator
 			_name_to_channel[channel_name].add_operator(client->get_nickname());
 		}
-		// Check if the client is banned from the channel
 		Channel& channel = _name_to_channel[channel_name];
 
 		if (channel.contains_client(client) == true)
@@ -594,6 +593,7 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 			return;
 		}
 
+		// Check if the client is banned from the channel
 		if (channel.is_banned(client->get_nickname()))
 		{
 			client->append_response_buffer("474 " + client->get_nickname() + " " + channel_name + " :Cannot join channel (+b)\r\n");
@@ -601,6 +601,9 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 			return;
 		}
 
+		// TODO: check invite only
+
+		
 		channel.add_client(client);
 		client->join_channel(channel_name, &channel);
 		std::string join_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " JOIN " + channel_name + "\r\n";
