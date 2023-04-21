@@ -777,61 +777,70 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
         return;
     }
 
-    // Parse the mode string and apply the changes
-    bool add_mode = true;
-    std::string target_nickname;
-
-	std::stringstream mode_msg_changes;
+       bool set_mode = true;
+    size_t param_idx = 2;
     for (size_t i = 0; i < mode_string.length(); ++i)
     {
         char mode_char = mode_string[i];
 
-        switch (mode_char)
+        if (mode_char == '+' || mode_char == '-')
         {
-            case '+':
-                add_mode = true;
-                break;
-            case '-':
-                add_mode = false;
-                break;
-            case 'o':
-                if (params.size() >= 3)
-                {
-                    target_nickname = params[2];
-                    add_mode ? channel.add_operator(target_nickname) : channel.remove_operator(target_nickname);
-                    mode_msg_changes << (add_mode ? "+o " : "-o ") << target_nickname << " ";
-                }
-                else
-                {
-                    client->append_response_buffer("461 * MODE :Not enough parameters for +o or -o\r\n");
-                }
-                break;
-            case 'b':
-                if (params.size() >= 3)
-                {
-                    target_nickname = params[2];
-                    add_mode ? channel.add_ban(target_nickname) : channel.remove_ban(target_nickname);
-                    mode_msg_changes << (add_mode ? "+b " : "-b ") << target_nickname << " ";
-                }
-                else
-                {
-                    client->append_response_buffer("461 * MODE :Not enough parameters for +b or -b\r\n");
-                }
-                break;
-            default:
-                // Unrecognized mode character; send an error message
-                client->append_response_buffer("501 " + client->get_nickname() + " :Unknown MODE flag\r\n");
-                break;
+            set_mode = (mode_char == '+');
+        }
+        else
+        {
+            switch (mode_char)
+            {
+                case 'i':
+                    channel.set_is_invite_only(set_mode);
+                    break;
+                case 't':
+                    channel.set_topic_restricted(set_mode);
+                    break;
+                case 'k':
+                    if (param_idx < params.size())
+                    {
+                        channel.set_password(set_mode ? params[param_idx++] : "");
+                    }
+                    else
+                    {
+                        client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+                        return;
+                    }
+                    break;
+                case 'o':
+                    if (param_idx < params.size())
+                    {
+                        channel.set_operator(set_mode, params[param_idx++]);
+                    }
+                    else
+                    {
+                        client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+                        return;
+                    }
+                    break;
+                case 'l':
+                    if (set_mode && param_idx < params.size())
+                    {
+                        channel.set_limit(std::stoi(params[param_idx++]));
+                    }
+                    else if (!set_mode)
+                    {
+                        channel.remove_limit();
+                    }
+                    else
+                    {
+                        client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+                        return;
+                    }
+                    break;
+                default:
+                    client->append_response_buffer("472 " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
+                    break;
+            }
         }
     }
-    // Notify users in the channel about the mode change
-    std::string mode_msg = ":" + client->get_nickname() + " MODE " + channel_name + " " + mode_msg_changes.str() + "\r\n";
-	client->append_response_buffer(mode_msg);
-	_send_message_to_channel_members(client, &channel, mode_msg);
 }
-
-
-
 
 
 

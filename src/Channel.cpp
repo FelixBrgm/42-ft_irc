@@ -118,7 +118,7 @@ void Channel::set_topic(const std::string &topic) {
     _topic = topic;
 }
 
-void Channel::set_is_topic_only_changeable_by_operators(bool is_topic_only_changeable_by_operators) {
+void Channel::set_topic_restricted(bool is_topic_only_changeable_by_operators) {
     _is_topic_only_changeable_by_operators = is_topic_only_changeable_by_operators;
 }
 

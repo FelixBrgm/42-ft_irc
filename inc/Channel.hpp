@@ -46,7 +46,7 @@ class Channel
         void add_invited_nick(const std::string &invited_nick);
         void set_is_invite_only(bool is_invite_only);
         void set_topic(const std::string &topic);
-        void set_is_topic_only_changeable_by_operators(bool is_topic_only_changeable_by_operators);
+        void set_topic_restricted(bool is_topic_only_changeable_by_operators);
         void set_user_limit(unsigned short user_limit);
     
         // Getters
