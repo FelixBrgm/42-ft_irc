@@ -17,7 +17,7 @@ class Channel
 		bool							_is_invite_only;
 		std::string						_topic;
 		bool							_is_topic_only_changeable_by_operators;
-		unsinged short					_user_limit;
+		unsigned short					_user_limit;
 
     public:
         Channel();
@@ -42,11 +42,21 @@ class Channel
 		// Getters
 		std::string get_names_list();
 		const std::vector<Client*>& get_clients() const;
-		std::string get_topic() const;
-
+        void set_password(const std::string &password);
+        void add_invited_nick(const std::string &invited_nick);
+        void set_is_invite_only(bool is_invite_only);
+        void set_topic(const std::string &topic);
+        void set_is_topic_only_changeable_by_operators(bool is_topic_only_changeable_by_operators);
+        void set_user_limit(unsigned short user_limit);
+    
+        // Getters
+        std::string get_password() const;
+        std::vector<std::string> get_invited_nicks() const;
+        bool get_is_invite_only() const;
+        std::string get_topic() const;
+        bool get_is_topic_only_changeable_by_operators() const;
+        unsigned short get_user_limit() const;
 		// Setter
-		void set_topic(const std::string& topic);
-		void set_invite(bool is_invite_only);
 };
 
 #endif

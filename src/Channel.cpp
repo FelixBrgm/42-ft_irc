@@ -103,53 +103,51 @@ bool Channel::is_banned(const std::string& nickname) const
     return it != _banned_nicks.end();
 }
 
+void Channel::set_password(const std::string &password) {
+    _password = password;
+}
 
-  const std::string& getPassword() const 
-  {
-        return _password;
-    }
-    void setPassword(const std::string& password) 
-	{
-        _password = password;
-    }
+void Channel::add_invited_nick(const std::string &invited_nick) {
+    _invited_nicks.push_back(invited_nick);
+}
 
-    // Getter and setter for _invited_nicks
-    const std::vector<std::string>& getInvitedNicks() const 
-	{
-        return _invited_nicks;
-    }
-    void setInvitedNicks(const std::vector<std::string>& invitedNicks) {
-        _invited_nicks = invitedNicks;
-    }
+void Channel::set_is_invite_only(bool is_invite_only) {
+    _is_invite_only = is_invite_only;
+}
 
-    // Getter and setter for _is_invite_only
-    bool isInviteOnly() const {
-        return _is_invite_only;
-    }
-    void setInviteOnly(bool isInviteOnly) {
-        _is_invite_only = isInviteOnly;
-    }
+void Channel::set_topic(const std::string &topic) {
+    _topic = topic;
+}
 
-    // Getter and setter for _topic
-    const std::string& getTopic() const {
-        return _topic;
-    }
-    void setTopic(const std::string& topic) {
-        _topic = topic;
-    }
+void Channel::set_is_topic_only_changeable_by_operators(bool is_topic_only_changeable_by_operators) {
+    _is_topic_only_changeable_by_operators = is_topic_only_changeable_by_operators;
+}
 
-    // Getter and setter for _is_topic_only_changeable_by_operators
-    bool isTopicOnlyChangeableByOperators() const {
-        return _is_topic_only_changeable_by_operators;
-    }
-    void setTopicOnlyChangeableByOperators(bool isTopicOnlyChangeableByOperators) {
-        _is_topic_only_changeable_by_operators = isTopicOnlyChangeableByOperators;
-    }
+void Channel::set_user_limit(unsigned short user_limit) {
+    _user_limit = user_limit;
+}
 
-    // Getter and setter for _user_limit
-    unsigned short getUserLimit() const {
-        return _user_limit;
-    }
-    void setUserLimit(unsigned short userLimit) {
-        _user_limit = userLimit;
-    }
+// Getters
+std::string Channel::get_password() const {
+    return _password;
+}
+
+std::vector<std::string> Channel::get_invited_nicks() const {
+    return _invited_nicks;
+}
+
+bool Channel::get_is_invite_only() const {
+    return _is_invite_only;
+}
+
+std::string Channel::get_topic() const {
+    return _topic;
+}
+
+bool Channel::get_is_topic_only_changeable_by_operators() const {
+    return _is_topic_only_changeable_by_operators;
+}
+
+unsigned short Channel::get_user_limit() const {
+    return _user_limit;
+}
