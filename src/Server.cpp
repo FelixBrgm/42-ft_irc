@@ -319,6 +319,8 @@ void	Server::_parse_incoming_data(int fd)
 			_cmd_kick(&client, params);
 		else if (command == std::string("INVITE"))
 			_cmd_invite(&client, params);
+		else if (command == std::string("TOPIC"))
+			_cmd_topic(&client, params);
 		else
 		{
 			client.append_response_buffer(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
@@ -854,6 +856,59 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 	}
 }
 
+void Server::_cmd_topic(Client* client, const std::vector<std::string>& params)
+{
+	// Check if channel is given
+	if (params.size() < 1)
+	{
+		client->append_response_buffer("461 INVITE :Not enough parameters\r\n");
+		return;
+	}
+
+	std::string target_channel_name = params[0];
+
+	// Check if target_channel exists
+	if (_name_to_channel.find(target_channel_name) == _name_to_channel.end())
+	{
+		client->append_response_buffer("403 " + target_channel_name + " :No such channel\r\n");
+		return;
+	}
+
+	Channel& target_channel = _name_to_channel[target_channel_name];
+
+	// Check if executing user is on channel
+	if (!target_channel.contains_client(client))
+	{
+		client->append_response_buffer("442 " + target_channel_name + " :You're not on that channel\r\n");
+		return;
+	}
+
+	// When params is one you want to get the topic
+	if (params.size() == 1)
+	{
+		if (target_channel.get_topic() == std::string(""))
+		{
+			client->append_response_buffer("331 " + target_channel_name + " :No topic is set\r\n");
+		}
+		else
+		{
+			client->append_response_buffer("332 " + target_channel_name + " :" + target_channel.get_topic());
+		}
+		return;
+	}
+
+	// Check if operator permissions are needed && if ther are check if the executing user has them
+	if (target_channel.get_is_topic_only_changeable_by_operators() && !target_channel.is_operator(client->get_nickname()))
+	{
+		client->append_response_buffer("482 " + target_channel_name + " :You're not channel operator\r\n");
+		return;
+	}
+
+	std::string topic = params[1];
+	target_channel.set_topic(topic);
+
+	client->append_response_buffer("332 " + client->get_nickname() + " " + target_channel_name + " :" + target_channel.get_topic() + "\r\n");
+}
 
 void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
 {
