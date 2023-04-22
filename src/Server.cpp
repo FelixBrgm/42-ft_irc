@@ -195,16 +195,18 @@ void	Server::_parse_incoming_data(int fd)
 
 		if (received_bytes < 0)
 		{
-			if (errno == EWOULDBLOCK || errno == EAGAIN)
-			{
-				// No more data available, break the loop
-
-			}
-			else
-			{
-				_unexpected_client_disconnection(&client);
-				return;
-			}
+			break;
+			// Possible useless
+			// if (errno == EWOULDBLOCK || errno == EAGAIN)
+			// {
+			// 	// No more data available, break the loop
+			// 	break;
+			// }
+			// else
+			// {
+			// 	_unexpected_client_disconnection(&client);
+			// 	return;
+			// }
 		}
 
 		client.append_in_buffer(buf);
@@ -808,32 +810,32 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                         return;
                     }
                     break;
-                case 'o':
-                    if (param_idx < params.size())
-                    {
-                        channel.set_operator(set_mode, params[param_idx++]);
-                    }
-                    else
-                    {
-                        client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-                        return;
-                    }
-                    break;
-                case 'l':
-                    if (set_mode && param_idx < params.size())
-                    {
-                        channel.set_limit(std::stoi(params[param_idx++]));
-                    }
-                    else if (!set_mode)
-                    {
-                        channel.remove_limit();
-                    }
-                    else
-                    {
-                        client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-                        return;
-                    }
-                    break;
+                // case 'o':
+                //     if (param_idx < params.size())
+                //     {
+                //         channel.set_operator(set_mode, params[param_idx++]);
+                //     }
+                //     else
+                //     {
+                //         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+                //         return;
+                //     }
+                //     break;
+                // case 'l':
+                //     if (set_mode && param_idx < params.size())
+                //     {
+                //         channel.set_limit(std::stoi(params[param_idx++]));
+                //     }
+                //     else if (!set_mode)
+                //     {
+                //         channel.remove_limit();
+                //     }
+                //     else
+                //     {
+                //         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+                //         return;
+                //     }
+                //     break;
                 default:
                     client->append_response_buffer("472 " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
                     break;
