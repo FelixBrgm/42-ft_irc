@@ -96,6 +96,11 @@ void Channel::remove_ban(const std::string& nickname)
 		_banned_nicks.erase(it);
 }
 
+void	Channel::add_invite(const std::string& nickname)
+{
+	_invited_nicks.push_back(nickname);
+}
+
 bool Channel::is_banned(const std::string& nickname) const
 {
 	std::vector<std::string>::const_iterator it = std::find(_banned_nicks.begin(), _banned_nicks.end(), nickname);
@@ -149,4 +154,8 @@ bool Channel::get_is_topic_only_changeable_by_operators() const {
 
 unsigned short Channel::get_user_limit() const {
     return _user_limit;
+}
+
+std::string Channel::get_name() const {
+	return _name;
 }

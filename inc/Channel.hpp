@@ -35,6 +35,8 @@ class Channel
 		void	add_ban(const std::string& nickname);
 		void	remove_ban(const std::string& nickname);
 
+		void	add_invite(const std::string& nickname);
+
 		bool	is_invited(const std::string& nickname) const;
 		bool	is_operator(const std::string& nickname) const;
 		bool	is_banned(const std::string& nickname) const;
@@ -56,6 +58,7 @@ class Channel
         std::string get_topic() const;
         bool get_is_topic_only_changeable_by_operators() const;
         unsigned short get_user_limit() const;
+		std::string get_name() const;
 		// Setter
 };
 

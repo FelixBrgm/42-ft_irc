@@ -81,6 +81,7 @@ class Server
 		void	_cmd_op(Client* client, const std::vector<std::string>& params);
 		void	_cmd_kick(Client* client, const std::vector<std::string>& params);
 		void	_cmd_mode(Client* client, const std::vector<std::string>& params);
+		void	_cmd_invite(Client* client, const std::vector<std::string>& params);
 
 
 	void	_parse(std::string message);

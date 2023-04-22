@@ -16,10 +16,10 @@
 Server::Server(int port, std::string password, std::string server_name) : _port(port), _password(password), _server_name(server_name), _nfds(0), _listenerfd(-1)
 {
 	std::time_t now = std::time(nullptr);
-    std::tm* creation_tm = std::localtime(&now);
+	std::tm* creation_tm = std::localtime(&now);
 
-    std::stringstream date_stream;
-    date_stream << std::put_time(creation_tm, "%d-%b-%Y"); // or "%b %d %Y" for an alternative format
+	std::stringstream date_stream;
+	date_stream << std::put_time(creation_tm, "%d-%b-%Y"); // or "%b %d %Y" for an alternative format
 	_server_creation_time = date_stream.str();
 };
 
@@ -176,7 +176,7 @@ void Server::_accept_new_connection()
 
 void	Server::_parse_incoming_data(int fd)
 {
-    Client& client = _fd_to_client[fd];
+	Client& client = _fd_to_client[fd];
 
 	while (true)
 	{
@@ -269,6 +269,14 @@ void	Server::_parse_incoming_data(int fd)
 			params.back().pop_back();
 		}
 
+		std::cout << "PARAMS" << std::endl;
+	    for (size_t i = 0; i < params.size(); ++i)
+		{
+        	std::cout << "|" << params[i] << "|" << std::endl;
+    	}
+		std::cout << "END" << std::endl;
+
+
 		if (command == std::string("PASS"))
 			_cmd_pass(&client, params);
 		else if (command == std::string("NICK"))
@@ -309,6 +317,8 @@ void	Server::_parse_incoming_data(int fd)
 			_cmd_mode(&client, params);
 		else if (command == std::string("KICK"))
 			_cmd_kick(&client, params);
+		else if (command == std::string("INVITE"))
+			_cmd_invite(&client, params);
 		else
 		{
 			client.append_response_buffer(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
@@ -332,16 +342,16 @@ void Server::_broadcast_to_all_joined_channels(Client *client, const std::string
 // Cmd's Helpers
 void Server::_send_message_to_channel_members(Client *client, Channel *channel, const std::string& message)
 {
-    // Get the clients in the channel
-    const std::vector<Client*>& clients_in_channel = channel->get_clients();
+	// Get the clients in the channel
+	const std::vector<Client*>& clients_in_channel = channel->get_clients();
 
-    // Iterate through the clients and send the message to each of them
-    for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
-    {
-        Client* user_in_channel = *it;
+	// Iterate through the clients and send the message to each of them
+	for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
+	{
+		Client* user_in_channel = *it;
 		if (client != user_in_channel)
-        	user_in_channel->append_response_buffer(message);
-    }
+			user_in_channel->append_response_buffer(message);
+	}
 }
 
 
@@ -356,58 +366,58 @@ void Server::_unexpected_client_disconnection(Client* client)
 
 Client* Server::_find_client_by_nickname(const std::string& nickname)
 {
-    for (std::map<int, Client>::iterator it = _fd_to_client.begin(); it != _fd_to_client.end(); ++it)
-    {
-        if (it->second.get_nickname() == nickname)
-        {
-            return &(it->second);
-        }
-    }
-    return nullptr;
+	for (std::map<int, Client>::iterator it = _fd_to_client.begin(); it != _fd_to_client.end(); ++it)
+	{
+		if (it->second.get_nickname() == nickname)
+		{
+			return &(it->second);
+		}
+	}
+	return nullptr;
 }
 
 std::vector<std::string> Server::_split_str(const std::string& str, char delimiter)
 {
-    std::vector<std::string> tokens;
-    std::istringstream iss(str);
-    std::string token;
+	std::vector<std::string> tokens;
+	std::istringstream iss(str);
+	std::string token;
 
-    while (std::getline(iss, token, delimiter))
-    {
-        tokens.push_back(token);
-    }
+	while (std::getline(iss, token, delimiter))
+	{
+		tokens.push_back(token);
+	}
 
-    return tokens;
+	return tokens;
 }
 
 
 
 void Server::_welcome_new_user(Client* client)
 {
-    std::string nickname = client->get_nickname();
-    std::string username = client->get_username();
-    std::string realname = client->get_realname();
-    std::string server_host = _server_name;
+	std::string nickname = client->get_nickname();
+	std::string username = client->get_username();
+	std::string realname = client->get_realname();
+	std::string server_host = _server_name;
 
-    // Send RPL_WELCOME: 001
-    std::string rpl_welcome_msg = "001 " + nickname + " :Welcome to the Internet Relay Network " + nickname + "!" + username + "@" + realname + "\r\n";
-    client->append_response_buffer(rpl_welcome_msg);
+	// Send RPL_WELCOME: 001
+	std::string rpl_welcome_msg = "001 " + nickname + " :Welcome to the Internet Relay Network " + nickname + "!" + username + "@" + realname + "\r\n";
+	client->append_response_buffer(rpl_welcome_msg);
 
-    // Send RPL_YOURHOST: 002
-    std::string rpl_yourhost_msg = "002 " + nickname + " :Your host is " + server_host + ", running version 1.0\r\n";
-    client->append_response_buffer(rpl_yourhost_msg);
+	// Send RPL_YOURHOST: 002
+	std::string rpl_yourhost_msg = "002 " + nickname + " :Your host is " + server_host + ", running version 1.0\r\n";
+	client->append_response_buffer(rpl_yourhost_msg);
 
-    // Send RPL_CREATED: 003
-    std::string rpl_created_msg = "003 " + nickname + " :This server was created " + _server_creation_time + "\r\n";
-    client->append_response_buffer(rpl_created_msg);
+	// Send RPL_CREATED: 003
+	std::string rpl_created_msg = "003 " + nickname + " :This server was created " + _server_creation_time + "\r\n";
+	client->append_response_buffer(rpl_created_msg);
 
-    // Send RPL_MYINFO: 004
+	// Send RPL_MYINFO: 004
 	std::string rpl_myinfo_msg = "004 " + nickname + " " + server_host + " 1.0 o o\r\n";
-    client->append_response_buffer(rpl_myinfo_msg);
+	client->append_response_buffer(rpl_myinfo_msg);
 
-    // ... any other messages you want to send
+	// ... any other messages you want to send
 
-    client->proceed_registration_status();
+	client->proceed_registration_status();
 }
 
 bool Server::_username_already_exists(const std::string& nickname)
@@ -418,12 +428,12 @@ bool Server::_username_already_exists(const std::string& nickname)
 bool Server::_is_valid_nickname(const std::string& nickname)
 {
 	// Check for lenght 9
-    if (nickname.empty() || nickname.length() > 9)
-        return false;
+	if (nickname.empty() || nickname.length() > 9)
+		return false;
 
-    // Check if the first character is a letter or special character
-    if (!std::isalpha(nickname[0]))
-        return false;
+	// Check if the first character is a letter or special character
+	if (!std::isalpha(nickname[0]))
+		return false;
 
 	// valid nickname
 	return true;
@@ -433,82 +443,82 @@ bool Server::_is_valid_nickname(const std::string& nickname)
 
 void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 {
-    if (client->get_status() != pass)
-    {
-        client->append_response_buffer("462 :You may not reregister\r\n");
-        return;
-    }
+	if (client->get_status() != pass)
+	{
+		client->append_response_buffer("462 :You may not reregister\r\n");
+		return;
+	}
 
-    if (params.size() < 1)
-    {
-        client->append_response_buffer("461 PASS :Not enough parameters\r\n");
-        return;
-    }
+	if (params.size() < 1)
+	{
+		client->append_response_buffer("461 PASS :Not enough parameters\r\n");
+		return;
+	}
 
-    if (params[0] != _password)
-    {
-        client->append_response_buffer("464 :Password incorrect\r\n");
-        return;
-    }
+	if (params[0] != _password)
+	{
+		client->append_response_buffer("464 :Password incorrect\r\n");
+		return;
+	}
 
 	// valid password
 	client->proceed_registration_status();
 };
 void Server::_cmd_nick(Client* client, std::vector<std::string> params)
 {
-    if (client->get_status() == pass)
-    {
-        client->append_response_buffer("451 :You have not registered\r\n");
-        return;
-    }
+	if (client->get_status() == pass)
+	{
+		client->append_response_buffer("451 :You have not registered\r\n");
+		return;
+	}
 
-    if (params.size() == 0)
-    {
-        client->append_response_buffer("431 :No nickname given\r\n");
-        return;
-    }
+	if (params.size() == 0)
+	{
+		client->append_response_buffer("431 :No nickname given\r\n");
+		return;
+	}
 
-    std::string new_nickname = params[0];
-    if (!_is_valid_nickname(new_nickname))
-    {
-        client->append_response_buffer("432 " + new_nickname + " :Erroneous nickname\r\n");
-        return;
-    }
+	std::string new_nickname = params[0];
+	if (!_is_valid_nickname(new_nickname))
+	{
+		client->append_response_buffer("432 " + new_nickname + " :Erroneous nickname\r\n");
+		return;
+	}
 
-    if (_username_already_exists(new_nickname))
-    {
-        // Handle nickname in use
-        client->append_response_buffer("433 " + new_nickname + " :Nickname is already in use\r\n");
-        return;
-    }
+	if (_username_already_exists(new_nickname))
+	{
+		// Handle nickname in use
+		client->append_response_buffer("433 " + new_nickname + " :Nickname is already in use\r\n");
+		return;
+	}
 
-    // Update the client's nickname
-    std::string old_nickname = client->get_nickname();
-    client->set_nickname(new_nickname);
+	// Update the client's nickname
+	std::string old_nickname = client->get_nickname();
+	client->set_nickname(new_nickname);
 
-    if (old_nickname.size() != 0)
-    {
-        std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), old_nickname);
-        if (it != _taken_usernames.end())
-            _taken_usernames.erase(it);
-    }
+	if (old_nickname.size() != 0)
+	{
+		std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), old_nickname);
+		if (it != _taken_usernames.end())
+			_taken_usernames.erase(it);
+	}
 
-    _taken_usernames.push_back(new_nickname);
+	_taken_usernames.push_back(new_nickname);
 
-    // If the client was already registered, send a notification to other users in the same channels
-    if (client->get_status() == registered)
-    {
-        // Notify other users in the same channels about the nickname change
-        std::string nick_change_msg = ":" + old_nickname + " NICK " + new_nickname + "\r\n";
-        client->append_response_buffer(nick_change_msg);
+	// If the client was already registered, send a notification to other users in the same channels
+	if (client->get_status() == registered)
+	{
+		// Notify other users in the same channels about the nickname change
+		std::string nick_change_msg = ":" + old_nickname + " NICK " + new_nickname + "\r\n";
+		client->append_response_buffer(nick_change_msg);
 
-        _broadcast_to_all_joined_channels(client, nick_change_msg);
-        return;
-    }
+		_broadcast_to_all_joined_channels(client, nick_change_msg);
+		return;
+	}
 
-    // if status is nick we proceed to user
-    if (client->get_status() == nick)
-        client->proceed_registration_status();
+	// if status is nick we proceed to user
+	if (client->get_status() == nick)
+		client->proceed_registration_status();
 }
 
 void	Server::_cmd_user(Client* client, std::vector<std::string> params)
@@ -559,11 +569,11 @@ void	Server::_cmd_ping(Client* client, std::vector<std::string> params)
 void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 {
 
-    if (client->get_status() != registered)
-    {
-        client->append_response_buffer("451 :You have not registered\r\n");
-        return;
-    }
+	if (client->get_status() != registered)
+	{
+		client->append_response_buffer("451 :You have not registered\r\n");
+		return;
+	}
 
 	if (params.size() < 1)
 	{
@@ -621,11 +631,11 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params)
 {
 
-    if (client->get_status() != registered)
-    {
-        client->append_response_buffer("451 :You have not registered\r\n");
-        return;
-    }
+	if (client->get_status() != registered)
+	{
+		client->append_response_buffer("451 :You have not registered\r\n");
+		return;
+	}
 
 	if (params.size() < 2)
 	{
@@ -693,21 +703,21 @@ void Server::_disconnect_client(Client* client, std::string quit_message)
 			_taken_usernames.erase(it);
 	}
 
-    // Remove the client from the _fd_to_client map
-    _fd_to_client.erase(client_fd);
+	// Remove the client from the _fd_to_client map
+	_fd_to_client.erase(client_fd);
 
-    // Remove the corresponding pollfd from the _pollfds vector
-    for (std::vector<struct pollfd>::iterator it = _pollfds.begin(); it != _pollfds.end(); ++it)
-    {
-        if (it->fd == client_fd)
-        {
-            _pollfds.erase(it);
-            break;
-        }
-    }
+	// Remove the corresponding pollfd from the _pollfds vector
+	for (std::vector<struct pollfd>::iterator it = _pollfds.begin(); it != _pollfds.end(); ++it)
+	{
+		if (it->fd == client_fd)
+		{
+			_pollfds.erase(it);
+			break;
+		}
+	}
 	_nfds--;
-    // Close the client's file descriptor
-    close(client_fd);
+	// Close the client's file descriptor
+	close(client_fd);
 }
 
 void Server::_cmd_quit(Client* client, const std::vector<std::string>& params)
@@ -724,132 +734,183 @@ void Server::_cmd_quit(Client* client, const std::vector<std::string>& params)
 void Server::_cmd_mode(Client* client, const std::vector<std::string>& params)
 {
 	if (client->get_status() != registered)
-    {
-        client->append_response_buffer("451 :You have not registered\r\n");
-        return;
-    }
+	{
+		client->append_response_buffer("451 :You have not registered\r\n");
+		return;
+	}
 
-    if (params.size() < 1)
-    {
-        client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-        return;
-    }
-    std::string target = params[0];
-    if (target[0] == '#' || target[0] == '&') // Channel mode
-    {
-        _cmd_channel_mode(client, params);
-    }
-    else // User mode
-    {
-        client->append_response_buffer("502 " + client->get_nickname() + " :Cannot change mode for other users\r\n");
-    }
+	if (params.size() < 1)
+	{
+		client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+		return;
+	}
+	std::string target = params[0];
+	if (target[0] == '#' || target[0] == '&') // Channel mode
+	{
+		_cmd_channel_mode(client, params);
+	}
+	else // User mode
+	{
+		client->append_response_buffer("502 " + client->get_nickname() + " :Cannot change mode for other users\r\n");
+	}
 }
 
 void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& params)
 {
 	if (client->get_status() != registered)
-    {
-        client->append_response_buffer("451 :You have not registered\r\n");
-        return;
-    }
+	{
+		client->append_response_buffer("451 :You have not registered\r\n");
+		return;
+	}
 
-    if (params.size() < 2)
-    {
-        client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-        return;
-    }
+	if (params.size() < 2)
+	{
+		client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+		return;
+	}
 
-    std::string channel_name = params[0];
-    std::string mode_string = params[1];
+	std::string channel_name = params[0];
+	std::string mode_string = params[1];
 
-    // Check if the channel exists
-    std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(channel_name);
-    if (channel_it == _name_to_channel.end())
-    {
-        client->append_response_buffer("403 " + client->get_nickname() + " " + channel_name + " :No such channel\r\n");
-        return;
-    }
+	// Check if the channel exists
+	std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(channel_name);
+	if (channel_it == _name_to_channel.end())
+	{
+		client->append_response_buffer("403 " + client->get_nickname() + " " + channel_name + " :No such channel\r\n");
+		return;
+	}
 
-    Channel& channel = channel_it->second;
+	Channel& channel = channel_it->second;
 
-    // Check if the client is an operator of the channel
-    if (!channel.is_operator(client->get_nickname()))
-    {
-        client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
-        return;
-    }
+	// Check if the client is an operator of the channel
+	if (!channel.is_operator(client->get_nickname()))
+	{
+		client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
+		return;
+	}
 
-       bool set_mode = true;
-    size_t param_idx = 2;
-    for (size_t i = 0; i < mode_string.length(); ++i)
-    {
-        char mode_char = mode_string[i];
+	   bool set_mode = true;
+	size_t param_idx = 2;
+	for (size_t i = 0; i < mode_string.length(); ++i)
+	{
+		char mode_char = mode_string[i];
 
-        if (mode_char == '+' || mode_char == '-')
-        {
-            set_mode = (mode_char == '+');
-        }
-        else
-        {
-            switch (mode_char)
-            {
-                case 'i':
-                    channel.set_is_invite_only(set_mode);
-                    break;
-                case 't':
-                    channel.set_topic_restricted(set_mode);
-                    break;
-                case 'k':
-                    if (param_idx < params.size())
-                    {
-                        channel.set_password(set_mode ? params[param_idx++] : "");
-                    }
-                    else
-                    {
-                        client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-                        return;
-                    }
-                    break;
-                // case 'o':
-                //     if (param_idx < params.size())
-                //     {
-                //         channel.set_operator(set_mode, params[param_idx++]);
-                //     }
-                //     else
-                //     {
-                //         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-                //         return;
-                //     }
-                //     break;
-                // case 'l':
-                //     if (set_mode && param_idx < params.size())
-                //     {
-                //         channel.set_limit(std::stoi(params[param_idx++]));
-                //     }
-                //     else if (!set_mode)
-                //     {
-                //         channel.remove_limit();
-                //     }
-                //     else
-                //     {
-                //         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-                //         return;
-                //     }
-                //     break;
-                default:
-                    client->append_response_buffer("472 " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
-                    break;
-            }
-        }
-    }
+		if (mode_char == '+' || mode_char == '-')
+		{
+			set_mode = (mode_char == '+');
+		}
+		else
+		{
+			switch (mode_char)
+			{
+				case 'i':
+					channel.set_is_invite_only(set_mode);
+					break;
+				case 't':
+					channel.set_topic_restricted(set_mode);
+					break;
+				case 'k':
+					if (param_idx < params.size())
+					{
+						channel.set_password(set_mode ? params[param_idx++] : "");
+					}
+					else
+					{
+						client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+						return;
+					}
+					break;
+				// case 'o':
+				//     if (param_idx < params.size())
+				//     {
+				//         channel.set_operator(set_mode, params[param_idx++]);
+				//     }
+				//     else
+				//     {
+				//         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+				//         return;
+				//     }
+				//     break;
+				// case 'l':
+				//     if (set_mode && param_idx < params.size())
+				//     {
+				//         channel.set_limit(std::stoi(params[param_idx++]));
+				//     }
+				//     else if (!set_mode)
+				//     {
+				//         channel.remove_limit();
+				//     }
+				//     else
+				//     {
+				//         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+				//         return;
+				//     }
+				//     break;
+				default:
+					client->append_response_buffer("472 " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
+					break;
+			}
+		}
+	}
 }
 
 
+void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
+{
+	// Check for enough parameters
+	if (params.size() < 2)
+	{
+		client->append_response_buffer("461 INVITE :Not enough parameters\r\n");
+		return;
+	}
 
+	std::string target_nickname = params[0];
+	std::string target_channel_name = params[1];
+	
+	// Check if channel exists
+	if (_name_to_channel.find(target_channel_name) == _name_to_channel.end())
+	{
+		client->append_response_buffer("403 " + target_channel_name + " :No such channel\r\n");
+		return;
+	}
 
+	// Check if executing user is on channel
+	Channel& target_channel = _name_to_channel[target_channel_name];
+	std::cout << "channelname|" << target_channel.get_names_list() << std::endl;
+	if (!target_channel.contains_client(client))
+	{
+		client->append_response_buffer("442 " + client->get_nickname() + " :You're not on that channel\r\n");
+		return;
+	}
 
+	// Check if executing user is operator on channel
+	if (!target_channel.is_operator(client->get_nickname()))
+	{
+		client->append_response_buffer("482 " + client->get_nickname() + " " + target_channel_name + " :You're not channel operator\r\n");
+		return;
+	}
 
+	// Check if target_nickname exists
+	Client* target_client = _find_client_by_nickname(target_nickname);
+	if (target_client == nullptr)
+	{
+		client->append_response_buffer("401 " + target_nickname + " :No such nick/channel\r\n");
+		return;
+	}
 
+	// Check if target_nickname is already in the channel
+	if (target_channel.contains_client(target_client))
+	{
+		client->append_response_buffer("443 " + target_nickname + " " + target_channel_name + " :is already on channel\r\n");
+		return;
+	}
+
+	// EXECUTE INVITE
+	target_channel.add_invite(target_nickname);
+
+	target_client->append_response_buffer("341 * " + target_nickname + " " + target_channel_name + "\r\n");
+
+}
 void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 {
 	if (params.size() < 2)
