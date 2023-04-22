@@ -24,6 +24,7 @@
 # objectsourcespath=$(addprefix ./objects/, $(objectsources))
 
 
+SOURCES := $(shell find . -type f -name "*.cpp")
 
 # inputobjs=$(inputsources:.c=.o)
 # utilityobjs=$(utilitysources:.c=.o)
@@ -58,6 +59,5 @@ all: test
 #         rm -rf $(MLX)
 #         rm -rf $(NAME)
 #         rm -rf minirt.dSYM
-
 test:
-	g++ -Wall -Werror -Wextra src/main.cpp src/Server.cpp src/Client.cpp src/Channel.cpp && echo "STARTED" && ./a.out 4000 a
+	g++ -Wall -Werror -Wextra $(SOURCES) && echo "STARTED" && ./a.out 4000 a
