@@ -89,7 +89,7 @@ bool Channel::is_full() const
 {
 	if (get_user_limit() == 0)
 		return false;
-	return get_user_limit() =< get_clients_count();
+	return get_user_limit() <= get_clients_count();
 }
 
 // Getters
@@ -103,7 +103,7 @@ const std::vector<Client*>& Channel::get_clients() const
 	return _channel_clients;
 }
 
-const size_t Channel::get_clients_count() const
+short Channel::get_clients_count() const
 {
 	return _channel_clients.size();
 }

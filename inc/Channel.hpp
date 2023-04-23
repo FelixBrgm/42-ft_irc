@@ -51,7 +51,7 @@ class Channel
 		// Getters
 		std::string					get_name() const;
 		const std::vector<Client*>&	get_clients() const;
-		const size_t				get_clients_count() const;
+		short						get_clients_count() const;
 		std::string					get_names_list();
 
 		std::string					get_password() const;
