@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <iostream>
 
-void Server::start()
+void Server::run()
 {
 	struct sockaddr_in	_listener_socket_addr;
 	std::memset(&_listener_socket_addr, 0, sizeof(_listener_socket_addr));
@@ -85,7 +85,7 @@ void Server::_event_loop()
 			else
 			{
 				if (_pollfds[i].revents & POLLIN)
-					_parse_incoming_data(_pollfds[i].fd);
+					_parse(_pollfds[i].fd);
 			}
 		}
 

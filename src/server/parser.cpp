@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 
-void	Server::_parse_incoming_data(int fd)
+void	Server::_parse(int fd)
 {
 	Client& client = _fd_to_client[fd];
 

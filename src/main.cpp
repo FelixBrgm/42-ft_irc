@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 
 	Server server(std::stoi(std::string(argv[1])), std::string(argv[2]));
 
-	server.start();
-		// If your server was created when it started, use this:
+	server.run();
+
 	return 0;
 }
