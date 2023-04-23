@@ -54,7 +54,6 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 			return;
 		}
 
-		// TODO: check invite only
 		if (channel.get_is_invite_only() && !channel.is_invited(client->get_nickname()))
 		{
 			client->append_response_buffer("473 * " + channel_name + " :Cannot join channel (+i)\r\n");

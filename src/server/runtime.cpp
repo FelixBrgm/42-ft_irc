@@ -96,7 +96,10 @@ void Server::_event_loop()
 
 			if (!client.is_response_complete())
 				continue;
-			client.send_out_buffer();
+			if(client.send_out_buffer())
+			{
+				_unexpected_client_disconnection(&client);
+			}
 		}
 	}
 }

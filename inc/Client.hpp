@@ -68,7 +68,7 @@ public:
 	// Actions
 	void							disconnect();
 	void							join_channel(std::string channel_name, Channel *channel_to_join);
-	void							send_out_buffer();
+	short							send_out_buffer();
 
 	// Registration
 	void							proceed_registration_status();
