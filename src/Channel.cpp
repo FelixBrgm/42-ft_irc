@@ -129,7 +129,8 @@ std::string Channel::get_password() const
 	return _password;
 }
 
-unsigned short Channel::get_user_limit() const {
+unsigned short Channel::get_user_limit() const
+{
 	return _user_limit;
 }
 
@@ -162,18 +163,22 @@ void Channel::set_password(const std::string &password)
 	_password = password;
 }
 
-void Channel::set_user_limit(unsigned short user_limit) {
+void Channel::set_user_limit(unsigned short user_limit)
+{
 	_user_limit = user_limit;
 }
 
-void Channel::set_is_invite_only(bool is_invite_only) {
+void Channel::set_is_invite_only(bool is_invite_only)
+{
 	_is_invite_only = is_invite_only;
 }
 
-void Channel::set_topic_restricted(bool is_topic_only_changeable_by_operators) {
+void Channel::set_topic_restricted(bool is_topic_only_changeable_by_operators)
+{
 	_is_topic_only_changeable_by_operators = is_topic_only_changeable_by_operators;
 }
 
-void Channel::set_topic(const std::string &topic) {
+void Channel::set_topic(const std::string &topic)
+{
 	_topic = topic;
 }
