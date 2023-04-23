@@ -192,7 +192,7 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 
 	if (!channel.is_operator(client->get_nickname()))
 	{
-		client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
+			client->append_response_buffer("482 " + channel_name + " :You're not channel operator\r\n");
 		return;
 	}
 
@@ -332,7 +332,7 @@ void Server::_cmd_topic(Client* client, const std::vector<std::string>& params)
     // Check if operator permissions are needed && if ther are check if the executing user has them
     if (target_channel.get_is_topic_only_changeable_by_operators() && !target_channel.is_operator(client->get_nickname()))
     {
-        client->append_response_buffer("482 " + target_channel_name + " :You're not channel operator\r\n");
+		client->append_response_buffer("482 " + target_channel_name + " :You're not channel operator\r\n");
         return;
     }
 
@@ -372,7 +372,7 @@ void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
 	// Check if executing user is operator on channel
 	if (!target_channel.is_operator(client->get_nickname()))
 	{
-		client->append_response_buffer("482 " + client->get_nickname() + " " + target_channel_name + " :You're not channel operator\r\n");
+		client->append_response_buffer("482 " + target_channel_name + " :You're not channel operator\r\n");
 		return;
 	}
 
@@ -420,7 +420,7 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 
 	if (!channel.is_operator(client->get_nickname()))
 	{
-		client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
+		client->append_response_buffer("482 " + channel_name + " :You're not channel operator\r\n");
 		return;
 	}
 
