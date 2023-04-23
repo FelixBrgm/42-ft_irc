@@ -70,9 +70,7 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 	{
 		// Notify other users in the same channels about the nickname change
 		std::string nick_change_msg = ":" + old_nickname + " NICK " + new_nickname + "\r\n";
-		client->append_response_buffer(nick_change_msg);
-
-		_broadcast_to_all_joined_channels(client, nick_change_msg);
+		_broadcast_to_all_clients_on_server(nick_change_msg);
 		return;
 	}
 

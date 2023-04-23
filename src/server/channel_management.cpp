@@ -64,7 +64,7 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 		channel.add_client(client);
 		client->join_channel(channel_name, &channel);
 		std::string join_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " JOIN " + channel_name + "\r\n";
-		_send_message_to_channel_members(client, &channel,join_msg);
+		_send_message_to_channel_members(client, &channel,join_msg, false);
 		// Send the list of users in the channel to the client
 		std::string names_list = channel.get_names_list();
 		std::string topic = channel.get_topic() == "" ? "No topic is set" : channel.get_topic();
@@ -191,70 +191,91 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 		return;
 	}
 
-	   bool set_mode = true;
-	size_t param_idx = 2;
-	for (size_t i = 0; i < mode_string.length(); ++i)
-	{
-		char mode_char = mode_string[i];
+    size_t param_idx = 1;
 
-		if (mode_char == '+' || mode_char == '-')
-		{
-			set_mode = (mode_char == '+');
-		}
-		else
-		{
-			switch (mode_char)
-			{
-				case 'i':
-					channel.set_is_invite_only(set_mode);
-					break;
-				case 't':
-					channel.set_topic_restricted(set_mode);
-					break;
-				case 'k':
-					if (param_idx < params.size())
-					{
-						channel.set_password(set_mode ? params[param_idx++] : "");
-					}
-					else
-					{
-						client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-						return;
-					}
-					break;
-				// case 'o':
-				//     if (param_idx < params.size())
-				//     {
-				//         channel.set_operator(set_mode, params[param_idx++]);
-				//     }
-				//     else
-				//     {
-				//         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-				//         return;
-				//     }
-				//     break;
-				// case 'l':
-				//     if (set_mode && param_idx < params.size())
-				//     {
-				//         channel.set_limit(std::stoi(params[param_idx++]));
-				//     }
-				//     else if (!set_mode)
-				//     {
-				//         channel.remove_limit();
-				//     }
-				//     else
-				//     {
-				//         client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
-				//         return;
-				//     }
-				//     break;
-				default:
-					client->append_response_buffer("472 " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
-					break;
-			}
-		}
-	}
-}
+    while (param_idx < params.size()) {
+        std::string mode_string = params[param_idx++];
+        bool set_mode = true;
+
+        for (size_t i = 0; i < mode_string.length(); ++i)
+        {
+            char mode_char = mode_string[i];
+
+            if (mode_char == '+' || mode_char == '-')
+            {
+                set_mode = (mode_char == '+');
+            }
+            else
+            {
+                switch (mode_char)
+                {
+                    case 'i':
+                        channel.set_is_invite_only(set_mode);
+						_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+i" : "-i") + "\r\n", true);
+                        break;
+                    case 't':
+                        channel.set_topic_restricted(set_mode);
+						_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+t" : "-t") + "\r\n", true);
+                        break;
+                    case 'k':
+                        if (param_idx < params.size())
+                        {
+                            channel.set_password(set_mode ? params[param_idx++] : "");
+                        }
+                        else
+                        {
+                            client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+                            return;
+                        }
+						_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+k" : "-k") + " " + (set_mode ? channel.get_password() : "") + "\r\n", true);
+                        break;
+                    case 'o':
+                		if (param_idx < params.size())
+                		{
+                		    std::string target_nickname = params[param_idx++];
+							Client* target_client = _find_client_by_nickname(target_nickname);
+                		    if (target_client)
+                		    {
+								if (set_mode)
+									channel.add_operator(target_nickname);
+								else
+									channel.remove_operator(target_nickname);
+								_send_message_to_channel_members(target_client, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+o" : "-o") + " " + target_nickname + "\r\n", true);
+                		    }
+                		    else
+                		    {
+                		        client->append_response_buffer("401 " + client->get_nickname() + " " + target_nickname + " :No such nick\r\n");
+                		    }
+                		}
+                		else
+                		{
+                		    client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+                		}
+                		break;
+                    case 'l':
+                        if (set_mode && param_idx < params.size())
+                        {
+                            channel.set_user_limit(std::stoi(params[param_idx++]));
+							_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " +l " + std::to_string(channel.get_user_limit()) + "\r\n", true);
+                        }
+                        else if (!set_mode)
+                        {
+                            channel.set_user_limit(0);
+							_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " -l\r\n", true);
+                        }
+                        else
+                        {
+                            client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+                            return;
+                        }
+                        break;
+                    default:
+                        client->append_response_buffer("472 " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
+                        break;
+                }
+            }
+        }
+}}
 
 void Server::_cmd_topic(Client* client, const std::vector<std::string>& params)
 {
@@ -403,7 +424,7 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 
 	// Notify all users joined in the channel user
 	std::string kick_msg = ":" + client->get_nickname() + " KICK " + channel_name + " " + target_nickname + " :" + reason + "\r\n";
-	_send_message_to_channel_members(target_client, &channel, kick_msg);
+	_send_message_to_channel_members(target_client, &channel, kick_msg, false);
 	target_client->append_response_buffer(kick_msg);
 
 	// Remove the target user from the channel
