@@ -88,48 +88,52 @@ void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params
 		client->append_response_buffer("461 * PRIVMSG :Not enough parameters\r\n");
 		return;
 	}	
-	std::string target_name = params[0];
-	std::string message = params[1];	
-	// Check if the target is a channel or a user
-	if (target_name[0] == '#')
+	std::vector<std::string> target_names = _split_str(params[0], ',');
+	std::string message = params[1];
+	for (size_t i = 0; i < target_names.size(); i++)
 	{
-		// Target is a channel
-		std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(target_name);
-		if (channel_it == _name_to_channel.end())
+		std::string target_name = target_names[i];
+		// Check if the target is a channel or a user
+		if (target_name[0] == '#')
 		{
-			client->append_response_buffer("403 " + client->get_nickname() + " " + target_name + " :No such channel\r\n");
-			return;
-		}	
-		Channel& channel = channel_it->second;
-		if (!channel.contains_client(client))
-		{
-			client->append_response_buffer("404 " + client->get_nickname() + " " + target_name + " :Cannot send to channel\r\n");
-			return;
-		}
-
-
-		// Relay the message to all clients in the channel
-		const std::vector<Client*>& clients_in_channel = channel.get_clients();
-		for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
-		{
-			Client* client_in_channel = *it;
-			if (client_in_channel != client)
+			// Target is a channel
+			std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(target_name);
+			if (channel_it == _name_to_channel.end())
 			{
-				std::string msg_to_send = ":" + client->get_nickname() + " PRIVMSG " + target_name + " :" + message + "\r\n";
-				client_in_channel->append_response_buffer(msg_to_send);
+				client->append_response_buffer("403 " + client->get_nickname() + " " + target_name + " :No such channel\r\n");
+				return;
+			}	
+			Channel& channel = channel_it->second;
+			if (!channel.contains_client(client))
+			{
+				client->append_response_buffer("404 " + client->get_nickname() + " " + target_name + " :Cannot send to channel\r\n");
+				return;
+			}
+
+
+			// Relay the message to all clients in the channel
+			const std::vector<Client*>& clients_in_channel = channel.get_clients();
+			for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
+			{
+				Client* client_in_channel = *it;
+				if (client_in_channel != client)
+				{
+					std::string msg_to_send = ":" + client->get_nickname() + " PRIVMSG " + target_name + " :" + message + "\r\n";
+					client_in_channel->append_response_buffer(msg_to_send);
+				}
 			}
 		}
-	}
-	else
-	{
-		Client* target_client = _find_client_by_nickname(target_name);
-		if (target_client == nullptr)
+		else
 		{
-			client->append_response_buffer("401 " + client->get_nickname() + " " + target_name + " :No such nick\r\n");
-			return;
+			Client* target_client = _find_client_by_nickname(target_name);
+			if (target_client == nullptr)
+			{
+				client->append_response_buffer("401 " + client->get_nickname() + " " + target_name + " :No such nick\r\n");
+				return;
+			}
+			std::string msg_to_send = ":" + client->get_nickname() + " PRIVMSG " + target_name + " :" + message + "\r\n";
+			target_client->append_response_buffer(msg_to_send);
 		}
-		std::string msg_to_send = ":" + client->get_nickname() + " PRIVMSG " + target_name + " :" + message + "\r\n";
-		target_client->append_response_buffer(msg_to_send);
 	}
 }
 
