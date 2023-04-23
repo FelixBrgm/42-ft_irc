@@ -13,7 +13,7 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 
 	if (params.size() < 1)
 	{
-		client->append_response_buffer("461 * JOIN :Not enough parameters\r\n");
+		client->append_response_buffer("461 " + client->get_nickname() + " JOIN :Not enough parameters\r\n");
 		return;
 	}
 
@@ -84,7 +84,7 @@ void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params
 
 	if (params.size() < 2)
 	{
-		client->append_response_buffer("461 * PRIVMSG :Not enough parameters\r\n");
+		client->append_response_buffer("461 " + client->get_nickname() + " PRIVMSG :Not enough parameters\r\n");
 		return;
 	}	
 	std::vector<std::string> target_names = _split_str(params[0], ',');
@@ -146,7 +146,7 @@ void Server::_cmd_mode(Client* client, const std::vector<std::string>& params)
 
 	if (params.size() < 1)
 	{
-		client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+		client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
 		return;
 	}
 	std::string target = params[0];
@@ -235,7 +235,7 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                         }
                         else
                         {
-                            client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+							client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
                             return;
                         }
 						_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+k" : "-k") + " " + (set_mode ? channel.get_password() : "") + "\r\n", true);
@@ -260,7 +260,7 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                 		}
                 		else
                 		{
-                		    client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+							client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
                 		}
                 		break;
                     case 'l':
@@ -276,7 +276,7 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                         }
                         else
                         {
-                            client->append_response_buffer("461 * MODE :Not enough parameters\r\n");
+     						client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
                             return;
                         }
                         break;
@@ -293,7 +293,7 @@ void Server::_cmd_topic(Client* client, const std::vector<std::string>& params)
     // Check if channel is given
     if (params.size() < 1)
     {
-        client->append_response_buffer("461 * INVITE :Not enough parameters\r\n");
+        client->append_response_buffer("461 " + client->get_nickname() + " INVITE :Not enough parameters\r\n");
         return;
     }
 
@@ -346,7 +346,7 @@ void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
 	// Check for enough parameters
 	if (params.size() < 2)
 	{
-		client->append_response_buffer("461 * INVITE :Not enough parameters\r\n");
+		client->append_response_buffer("461 " + client->get_nickname() + " INVITE :Not enough parameters\r\n");
 		return;
 	}
 
@@ -402,7 +402,7 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 {
 	if (params.size() < 2)
 	{
-		client->append_response_buffer("461 * KICK :Not enough parameters\r\n");
+		client->append_response_buffer("461 " + client->get_nickname() + " KICK :Not enough parameters\r\n");
 		return;
 	}
 

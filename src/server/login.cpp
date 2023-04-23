@@ -10,7 +10,7 @@ void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 
 	if (params.size() < 1)
 	{
-		client->append_response_buffer("461 * PASS :Not enough parameters\r\n");
+		client->append_response_buffer("461 " + client->get_nickname() + " PASS :Not enough parameters\r\n");
 		return;
 	}
 
@@ -41,7 +41,7 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 	std::string new_nickname = params[0];
 	if (!_is_valid_nickname(new_nickname))
 	{
-		client->append_response_buffer("432 " + new_nickname + " :Erroneous nickname\r\n");
+		client->append_response_buffer("432 * " + new_nickname + " :Erroneous nickname\r\n");
 		return;
 	}
 
@@ -90,7 +90,7 @@ void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 
 	if (params.size() < 4)
 	{
-		client->append_response_buffer("461 * USER :Not enough parameters\r\n");
+		client->append_response_buffer("461 " + client->get_nickname() + " USER :Not enough parameters\r\n");
 		return;
 	}
 
