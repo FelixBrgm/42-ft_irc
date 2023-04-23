@@ -24,18 +24,15 @@ void	Server::_parse(int fd)
 
 		if (received_bytes < 0)
 		{
-			break;
-			// Possible useless
-			// if (errno == EWOULDBLOCK || errno == EAGAIN)
-			// {
-			// 	// No more data available, break the loop
-			// 	break;
-			// }
-			// else
-			// {
-			// 	_unexpected_client_disconnection(&client);
-			// 	return;
-			// }
+			if (errno == EWOULDBLOCK || errno == EAGAIN)
+			{
+				break;
+			}
+			else
+			{
+				_unexpected_client_disconnection(&client);
+				return;
+			}
 		}
 
 		client.append_in_buffer(buf);

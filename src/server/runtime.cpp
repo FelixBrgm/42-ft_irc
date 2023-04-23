@@ -44,7 +44,7 @@ void Server::run()
 	struct pollfd socket_info;
 	std::memset(&socket_info, 0, sizeof(socket_info));
 	socket_info.fd = _listenerfd;
-	socket_info.events = POLLIN | POLLOUT | POLLHUP;
+	socket_info.events = POLLIN;
 	_pollfds.push_back(socket_info);
 	_nfds++;
 
@@ -63,7 +63,7 @@ void Server::_event_loop()
 
 		for (int i = 0; i < _nfds; i++)
 		{
-			// no event on socket
+
 			if (_pollfds[i].revents == 0)
 				continue;
 			// error on socket -> remove from pollfds
@@ -78,6 +78,7 @@ void Server::_event_loop()
 				_unexpected_client_disconnection(&_fd_to_client[_pollfds[i].fd]);
 				break;
 			}
+
 
 			// new client is connecting
 			if (_pollfds[i].fd == _listenerfd && (_pollfds[i].revents & POLLIN) == POLLIN)
@@ -133,7 +134,7 @@ void Server::_accept_new_connection()
 		struct pollfd socket_info;
 		std::memset(&socket_info, 0, sizeof(socket_info));
 		socket_info.fd = new_socket_fd;
-		socket_info.events = POLLIN | POLLOUT | POLLHUP;
+		socket_info.events = POLLIN | POLLHUP;
 		_pollfds.push_back(socket_info);
 
 		_fd_to_client[new_socket_fd] = Client(new_socket_fd);
