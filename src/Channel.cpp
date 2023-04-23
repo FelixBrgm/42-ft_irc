@@ -3,7 +3,7 @@
 #include <algorithm>
 
 Channel::Channel() {};
-Channel::Channel(std::string name) : _name(name), _user_limit(0) {};
+Channel::Channel(std::string name) : _name(name), _user_limit(0), _is_invite_only(false) {};
 Channel::~Channel() {};
 
 // Client
