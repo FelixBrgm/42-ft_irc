@@ -4,19 +4,19 @@ void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 {
 	if (client->get_status() != pass)
 	{
-		client->append_response_buffer("462 :You may not reregister\r\n");
+		client->append_response_buffer("462 * :You may not reregister\r\n");
 		return;
 	}
 
 	if (params.size() < 1)
 	{
-		client->append_response_buffer("461 PASS :Not enough parameters\r\n");
+		client->append_response_buffer("461 * PASS :Not enough parameters\r\n");
 		return;
 	}
 
 	if (params[0] != _password)
 	{
-		client->append_response_buffer("464 :Password incorrect\r\n");
+		client->append_response_buffer("464 * :Password incorrect\r\n");
 		return;
 	}
 
@@ -28,27 +28,27 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 {
 	if (client->get_status() == pass)
 	{
-		client->append_response_buffer("451 :You have not registered\r\n");
+		client->append_response_buffer("451 * :You have not registered\r\n");
 		return;
 	}
 
 	if (params.size() == 0)
 	{
-		client->append_response_buffer("431 :No nickname given\r\n");
+		client->append_response_buffer("431 * :No nickname given\r\n");
 		return;
 	}
 
 	std::string new_nickname = params[0];
 	if (!_is_valid_nickname(new_nickname))
 	{
-		client->append_response_buffer("432 " + new_nickname + " :Erroneous nickname\r\n");
+		client->append_response_buffer("432 * " + new_nickname + " :Erroneous nickname\r\n");
 		return;
 	}
 
 	if (_username_already_exists(new_nickname))
 	{
 		// Handle nickname in use
-		client->append_response_buffer("433 " + new_nickname + " :Nickname is already in use\r\n");
+		client->append_response_buffer("433 * " + new_nickname + " :Nickname is already in use\r\n");
 		return;
 	}
 
@@ -84,13 +84,13 @@ void	Server::_cmd_user(Client* client, std::vector<std::string> params)
 
 	if (client->get_status() != user)
 	{
-		client->append_response_buffer("462 :You may not reregister\r\n");
+		client->append_response_buffer("462 * :You may not reregister\r\n");
 		return;
 	}
 
 	if (params.size() < 4)
 	{
-		client->append_response_buffer("461 USER :Not enough parameters\r\n");
+		client->append_response_buffer("461 * USER :Not enough parameters\r\n");
 		return;
 	}
 

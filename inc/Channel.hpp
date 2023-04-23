@@ -45,8 +45,10 @@ class Channel
 		void						add_invite(const std::string& nickname);
 		bool						is_invited(const std::string& nickname) const;
 
-		// Limit
+		// Mode checkers
 		bool						is_full() const;
+		std::string					get_mode_string() const;
+
 
 		// Getters
 		std::string					get_name() const;

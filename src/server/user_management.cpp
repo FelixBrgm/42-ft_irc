@@ -4,7 +4,7 @@ void	Server::_cmd_ping(Client* client, std::vector<std::string> params)
 {
 	if (params.size() < 1)
 	{
-		client->append_response_buffer("409 :No origin specified\r\n");
+		client->append_response_buffer("409 * :No origin specified\r\n");
 		return;
 	}
 

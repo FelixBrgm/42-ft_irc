@@ -42,7 +42,7 @@ void	Server::_parse(int fd)
 		// (check if the message is bigger then 512) -> send error
 		if (client.is_incoming_msg_too_long())
 		{
-			client.append_response_buffer("417 :Input line was too long\r\n");
+			client.append_response_buffer("417 * :Input line was too long\r\n");
 			return;
 		}
 		

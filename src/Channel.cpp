@@ -3,7 +3,7 @@
 #include <algorithm>
 
 Channel::Channel() {};
-Channel::Channel(std::string name) : _name(name), _user_limit(0), _is_invite_only(false) {};
+Channel::Channel(std::string name) : _name(name), _user_limit(0), _is_invite_only(false), _is_topic_only_changeable_by_operators(false) {};
 Channel::~Channel() {};
 
 // Client
@@ -193,4 +193,21 @@ void Channel::set_topic_restricted(bool is_topic_only_changeable_by_operators)
 void Channel::set_topic(const std::string &topic)
 {
 	_topic = topic;
+}
+
+
+std::string Channel::get_mode_string() const
+{
+    std::string mode_str = "+";
+
+    if (get_is_invite_only())
+        mode_str += "i";
+    if (get_is_topic_only_changeable_by_operators())
+        mode_str += "t";
+    if (!get_password().empty())
+        mode_str += "k " + get_password() + " ";
+    if (get_user_limit())
+        mode_str += "l " + std::to_string(get_user_limit());
+
+    return mode_str;
 }
