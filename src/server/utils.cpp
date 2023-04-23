@@ -3,18 +3,30 @@
 #include <sstream>
 #include <unistd.h>
 
+
+
 void Server::_broadcast_to_all_joined_channels(Client *client, const std::string& message)
 {
 	std::map<std::string, Channel*> joined_channels = client->get_joined_channels();
 	for (std::map<std::string, Channel*>::iterator it = joined_channels.begin(); it != joined_channels.end(); ++it)
 	{
 		Channel* channel = it->second;
-		_send_message_to_channel_members(client, channel, message);
+		_send_message_to_channel_members(client, channel, message, false);
+	}
+}
+
+void Server::_broadcast_to_all_clients_on_server(const std::string& message)
+{
+	for (std::map<int, Client>::iterator it = _fd_to_client.begin(); it != _fd_to_client.end(); ++it)
+	{
+		Client* client = &(it->second);
+		client->append_response_buffer(message);
 	}
 }
 
 // Cmd's Helpers
-void Server::_send_message_to_channel_members(Client *client, Channel *channel, const std::string& message)
+void Server::_send_message_to_channel_members(Client *client, Channel *channel, const std::string& message, bool send_to_client_himself)
+
 {
 	// Get the clients in the channel
 	const std::vector<Client*>& clients_in_channel = channel->get_clients();
@@ -23,7 +35,7 @@ void Server::_send_message_to_channel_members(Client *client, Channel *channel, 
 	for (std::vector<Client*>::const_iterator it = clients_in_channel.begin(); it != clients_in_channel.end(); ++it)
 	{
 		Client* user_in_channel = *it;
-		if (client != user_in_channel)
+		if (client != user_in_channel || send_to_client_himself)
 			user_in_channel->append_response_buffer(message);
 	}
 }
