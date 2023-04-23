@@ -1,5 +1,6 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
+
 #include <string>
 #include <map>
 
@@ -7,73 +8,71 @@
 
 class Channel;
 
-enum ClientStatus {pass, nick, user, registered};
+enum ClientStatus { pass, nick, user, registered };
 
-class Client
-{
+class Client {
+private:
+	int			_fd;
 
+	std::string						_nickname;
+	std::string						_username;
+	std::string						_realname;
 
-	private:
-		int											_fd;
+	ClientStatus					_registration_status;
 
-		std::string									_nickname;
-		std::string									_username;
-		std::string									_realname;
+	std::map<std::string, Channel*>	_joined_channels;
+	Channel*						_active_channel;
 
-		ClientStatus								_registration_status;
+	std::string						_in_buffer;
+	std::string						_response_buffer;
+	std::string						_out_buffer;
 
-		std::map<std::string, Channel*>				_joined_channels;	
-		Channel*									_active_channel;
+public:
+	Client(); // just for map default creation
+	Client(int fd);
+	~Client();
 
-		std::string									_in_buffer;
-		std::string									_response_buffer;
-		std::string									_out_buffer;
+	Client(const Client& other);
+	Client& operator= (const Client& other);
 
-	public:
-		Client(); // just for map default creation
-		Client(int fd);
-		~Client();
+	// Getters
+	int								get_fd() const;
 
-		Client(const Client& other);
+	std::string						get_nickname() const;
+	std::string						get_username() const;
+	std::string						get_realname() const;
 
-		Client& operator= (const Client& other);
+	ClientStatus					get_status() const;
 
-		// Getters And Setters
+	std::map<std::string, Channel*> get_joined_channels();
 
-		void append_response_buffer(std::string buffer);
-		void append_out_buffer(std::string buffer);
-		void append_in_buffer(char* buffer);
+	std::string						get_in_buffer();
 
-		void proceed_registration_status();
-		std::string get_in_buffer();
-		std::string get_nickname() const;
-		std::string get_username() const;
-		std::string get_realname() const;
-		int			get_fd() const;
-		std::map<std::string, Channel*> get_joined_channels();
-		void set_nickname(std::string& nickname);
-		void set_username(std::string& username);
-		void set_realname(std::string& realname);
+	// Setters
+	void							set_nickname(std::string& nickname);
+	void							set_username(std::string& username);
+	void							set_realname(std::string& realname);
 
+	// Buffer Operations
+	void							append_response_buffer(std::string buffer);
+	void							append_out_buffer(std::string buffer);
+	void							append_in_buffer(char* buffer);
+	void							cut_msg_in_buffer();
+	void							clear_out_buffer();
 
-		// Status Checkers
-		bool is_incoming_msg_complete() const;
-		bool is_incoming_msg_too_long() const;
-		bool is_response_complete() const;
-		ClientStatus get_status() const;
+	// Status Checkers
+	bool							is_incoming_msg_complete() const;
+	bool							is_incoming_msg_too_long() const;
+	bool							is_response_complete() const;
 
+	// Actions
+	void							disconnect();
+	void							join_channel(std::string channel_name, Channel *channel_to_join);
+	void							send_out_buffer();
 
+	// Registration
+	void							proceed_registration_status();
 
-
-		void cut_msg_in_buffer();
-		void clear_out_buffer();
-
-
-		// Actions
-		void disconnect();
-		void join_channel(std::string channel_name, Channel *channel_to_join);
-		void send_out_buffer();
-	
 };
 
 #endif
