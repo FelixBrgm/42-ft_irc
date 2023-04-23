@@ -67,7 +67,7 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 		_send_message_to_channel_members(client, &channel,join_msg);
 		// Send the list of users in the channel to the client
 		std::string names_list = channel.get_names_list();
-		std::string topic = channel.get_topic == "" ? "No topic is set" : channel.get_topic();
+		std::string topic = channel.get_topic() == "" ? "No topic is set" : channel.get_topic();
 		client->append_response_buffer("331 " + client->get_nickname() + " " + channel_name + " :" + topic +"\r\n");
 		client->append_response_buffer("353 " + client->get_nickname() + " = " + channel_name + " :" + names_list + "\r\n");
 		client->append_response_buffer("366 " + client->get_nickname() + " " + channel_name + " :End of /NAMES list\r\n");
