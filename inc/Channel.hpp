@@ -45,10 +45,13 @@ class Channel
 		void						add_invite(const std::string& nickname);
 		bool						is_invited(const std::string& nickname) const;
 
+		// Limit
+		bool						is_full() const;
 
 		// Getters
 		std::string					get_name() const;
 		const std::vector<Client*>&	get_clients() const;
+		const size_t				get_clients_count() const;
 		std::string					get_names_list();
 
 		std::string					get_password() const;

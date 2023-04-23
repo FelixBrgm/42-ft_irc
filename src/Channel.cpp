@@ -3,7 +3,7 @@
 #include <algorithm>
 
 Channel::Channel() {};
-Channel::Channel(std::string name) : _name(name) {};
+Channel::Channel(std::string name) : _name(name), _user_limit(0) {};
 Channel::~Channel() {};
 
 // Client
@@ -84,6 +84,13 @@ bool	Channel::is_invited(const std::string& nickname) const
 	return it != _invited_nicks.end();
 }
 
+// Limit
+bool Channel::is_full() const
+{
+	if (get_user_limit() == 0)
+		return false;
+	return get_user_limit() =< get_clients_count();
+}
 
 // Getters
 std::string Channel::get_name() const
@@ -94,6 +101,11 @@ std::string Channel::get_name() const
 const std::vector<Client*>& Channel::get_clients() const
 {
 	return _channel_clients;
+}
+
+const size_t Channel::get_clients_count() const
+{
+	return _channel_clients.size();
 }
 
 std::string Channel::get_names_list()
