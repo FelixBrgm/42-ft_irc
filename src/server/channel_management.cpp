@@ -428,7 +428,7 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 
 	// Notify all users joined in the channel user
 	std::string kick_msg = ":" + client->get_nickname() + " KICK " + channel_name + " " + target_nickname + " :" + reason + "\r\n";
-	_send_message_to_channel_members(target_client, &channel, kick_msg, false);
+	_send_message_to_channel_members(target_client, &channel, kick_msg, true);
 	target_client->append_response_buffer(kick_msg);
 
 	// Remove the target user from the channel
