@@ -50,7 +50,6 @@ void	Server::_parse(int fd)
 		if (!client.is_incoming_msg_complete())
 			return;
 
-		// std::cout << "FULL: " << message;
 		std::string buffer = client.get_in_buffer();
 
 		std::string message = buffer.substr(0, buffer.find("\r\n"));

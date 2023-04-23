@@ -150,18 +150,18 @@ void Client::join_channel(std::string channel_name, Channel *channel_to_join)
 	_joined_channels[channel_name] = channel_to_join;
 }
 
-void Client::send_out_buffer()
+short Client::send_out_buffer()
 {
 	int ret = send(_fd, NULL, 0, SO_NOSIGPIPE);
 	if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
 	{
 		// The writing operation would block
-		return;
+		return 0;
 	}
 	else if (ret == -1)
 	{
-		// Handle error -> disconnect client
-		return;
+		// -1 == disconected client
+		return -1;
 	}
 
 	_out_buffer = _response_buffer;
@@ -173,9 +173,11 @@ void Client::send_out_buffer()
 	{
 		if (errno != EAGAIN && errno != EWOULDBLOCK)
 		{
-			// real send error -> dc client;
+			// -1 == disconected client
+			return -1;
 		}
 	}
+	return (0);
 }
 
 // Registration
