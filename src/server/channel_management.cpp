@@ -99,13 +99,13 @@ void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params
 			std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(target_name);
 			if (channel_it == _name_to_channel.end())
 			{
-				client->append_response_buffer("403 * " + client->get_nickname() + " " + target_name + " :No such channel\r\n");
+				client->append_response_buffer("403 " + client->get_nickname() + " " + target_name + " :No such channel\r\n");
 				return;
 			}	
 			Channel& channel = channel_it->second;
 			if (!channel.contains_client(client))
 			{
-				client->append_response_buffer("404 * " + client->get_nickname() + " " + target_name + " :Cannot send to channel\r\n");
+				client->append_response_buffer("404 " + client->get_nickname() + " " + target_name + " :Cannot send to channel\r\n");
 				return;
 			}
 
@@ -127,7 +127,7 @@ void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params
 			Client* target_client = _find_client_by_nickname(target_name);
 			if (target_client == nullptr)
 			{
-				client->append_response_buffer("401 * " + client->get_nickname() + " " + target_name + " :No such nick\r\n");
+				client->append_response_buffer("401 " + client->get_nickname() + " " + target_name + " :No such nick\r\n");
 				return;
 			}
 			std::string msg_to_send = ":" + client->get_nickname() + " PRIVMSG " + target_name + " :" + message + "\r\n";
@@ -156,7 +156,7 @@ void Server::_cmd_mode(Client* client, const std::vector<std::string>& params)
 	}
 	else // User mode
 	{
-		client->append_response_buffer("502 * " + client->get_nickname() + " :Cannot change mode for other users\r\n");
+		client->append_response_buffer("502 " + client->get_nickname() + " :Cannot change mode for other users\r\n");
 	}
 }
 
@@ -175,7 +175,7 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 	std::map<std::string, Channel>::iterator channel_it = _name_to_channel.find(channel_name);
 	if (channel_it == _name_to_channel.end())
 	{
-		client->append_response_buffer("403 * " + client->get_nickname() + " " + channel_name + " :No such channel\r\n");
+		client->append_response_buffer("403 " + client->get_nickname() + " " + channel_name + " :No such channel\r\n");
 		return;
 	}
 
@@ -189,7 +189,7 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
         return;
 	}
 
-	
+
 	if (!channel.is_operator(client->get_nickname()))
 	{
 		client->append_response_buffer("482 " + client->get_nickname() + " " + channel_name + " :You're not channel operator\r\n");
@@ -255,7 +255,7 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                 		    }
                 		    else
                 		    {
-                		        client->append_response_buffer("401 * " + client->get_nickname() + " " + target_nickname + " :No such nick\r\n");
+                		        client->append_response_buffer("401 " + client->get_nickname() + " " + target_nickname + " :No such nick\r\n");
                 		    }
                 		}
                 		else
@@ -281,7 +281,7 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                         }
                         break;
                     default:
-                        client->append_response_buffer("472 * " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
+                        client->append_response_buffer("472 " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
                         break;
                 }
             }
@@ -365,7 +365,7 @@ void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
 	std::cout << "channelname|" << target_channel.get_names_list() << std::endl;
 	if (!target_channel.contains_client(client))
 	{
-		client->append_response_buffer("442 * " + client->get_nickname() + " :You're not on that channel\r\n");
+		client->append_response_buffer("442 " + client->get_nickname() + " :You're not on that channel\r\n");
 		return;
 	}
 
@@ -380,21 +380,21 @@ void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
 	Client* target_client = _find_client_by_nickname(target_nickname);
 	if (target_client == nullptr)
 	{
-		client->append_response_buffer("401 * " + target_nickname + " :No such nick/channel\r\n");
+		client->append_response_buffer("401 " + target_nickname + " :No such nick/channel\r\n");
 		return;
 	}
 
 	// Check if target_nickname is already in the channel
 	if (target_channel.contains_client(target_client))
 	{
-		client->append_response_buffer("443 * " + target_nickname + " " + target_channel_name + " :is already on channel\r\n");
+		client->append_response_buffer("443 " + target_nickname + " " + target_channel_name + " :is already on channel\r\n");
 		return;
 	}
 
 	// EXECUTE INVITE
 	target_channel.add_invite(target_nickname);
 
-	target_client->append_response_buffer("341 * " + target_nickname + " " + target_channel_name + "\r\n");
+	target_client->append_response_buffer("341 " + target_nickname + " " + target_channel_name + "\r\n");
 
 }
 
@@ -428,7 +428,7 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 	Client* target_client = _find_client_by_nickname(target_nickname);
 	if (target_client == nullptr || !channel.contains_client(target_client))
 	{
-		client->append_response_buffer("441 * " + client->get_nickname() + " " + target_nickname + " " + channel_name + " :They aren't on that channel\r\n");
+		client->append_response_buffer("441 " + client->get_nickname() + " " + target_nickname + " " + channel_name + " :They aren't on that channel\r\n");
 		return;
 	}
 

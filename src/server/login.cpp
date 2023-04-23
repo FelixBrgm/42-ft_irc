@@ -41,7 +41,7 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 	std::string new_nickname = params[0];
 	if (!_is_valid_nickname(new_nickname))
 	{
-		client->append_response_buffer("432 * " + new_nickname + " :Erroneous nickname\r\n");
+		client->append_response_buffer("432 " + new_nickname + " :Erroneous nickname\r\n");
 		return;
 	}
 
