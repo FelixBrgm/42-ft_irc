@@ -7,7 +7,7 @@ This README provides instructions for setting up and running an IRC server imple
 ## Requirements
 
 * C++ 98 compiler
-* An IRC client to use as a reference
+* An IRC client (irssi recommended)
 
 ## Usage
 
