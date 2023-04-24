@@ -142,7 +142,7 @@ void Server::_accept_new_connection()
 		struct pollfd socket_info;
 		std::memset(&socket_info, 0, sizeof(socket_info));
 		socket_info.fd = new_socket_fd;
-		socket_info.events = POLLIN | POLLHUP;
+		socket_info.events = POLLIN;
 		_pollfds.push_back(socket_info);
 
 		_fd_to_client[new_socket_fd] = Client(new_socket_fd);
