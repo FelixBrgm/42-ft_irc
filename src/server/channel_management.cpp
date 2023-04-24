@@ -271,6 +271,9 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 							client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
                 		}
                 		break;
+					case 'b':
+    					client->append_response_buffer("368 " + client->get_nickname() + " " + channel_name + " :End of Channel Ban List\r\n");
+    					break;
                     case 'l':
                         if (set_mode && param_idx < params.size())
                         {
