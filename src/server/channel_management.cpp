@@ -2,7 +2,6 @@
 
 void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 {
-
 	if (client->get_status() != registered)
 	{
 		client->append_response_buffer("451 * :You have not registered\r\n");
