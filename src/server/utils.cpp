@@ -94,6 +94,17 @@ void Server::_disconnect_client(Client* client, std::string quit_message)
 	std::string quit_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " QUIT :" + quit_message + "\r\n";
 	_broadcast_to_all_joined_channels(client, quit_msg);
 
+
+	// remove client out of all joined channels
+	std::map<std::string, Channel*> joined_channels = client->get_joined_channels();
+	for (std::map<std::string, Channel*>::iterator it = joined_channels.begin(); it != joined_channels.end(); ++it)
+	{
+		Channel* channel = it->second;
+		channel->remove_client(client);
+	}
+
+
+
 	// Remove the client from the taken username
 	int client_fd = client->get_fd();
 	if (client->get_nickname().size() != 0)
@@ -115,7 +126,10 @@ void Server::_disconnect_client(Client* client, std::string quit_message)
 			break;
 		}
 	}
+
+
 	_nfds--;
 	// Close the client's file descriptor
 	close(client_fd);
+
 }

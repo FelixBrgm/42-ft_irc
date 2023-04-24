@@ -199,13 +199,16 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
         return;
 	}
 
-
+	if (params.size() == 2 && params[1] == "b")
+	{
+    	client->append_response_buffer("368 " + client->get_nickname() + " " + channel_name + " :End of Channel Ban List\r\n");
+		return ;
+	}
 	if (!channel.is_operator(client->get_nickname()))
 	{
 			client->append_response_buffer("482 " + channel_name + " :You're not channel operator\r\n");
 		return;
 	}
-
 
 	std::string mode_string = params[1];
 
@@ -271,9 +274,6 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 							client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
                 		}
                 		break;
-					case 'b':
-    					client->append_response_buffer("368 " + client->get_nickname() + " " + channel_name + " :End of Channel Ban List\r\n");
-    					break;
                     case 'l':
                         if (set_mode && param_idx < params.size())
                         {
@@ -301,6 +301,14 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 
 void Server::_cmd_topic(Client* client, const std::vector<std::string>& params)
 {
+
+
+	if (client->get_status() != registered)
+	{
+		client->append_response_buffer("451 * :You have not registered\r\n");
+		return;
+	}
+
     // Check if channel is given
     if (params.size() < 1)
     {
@@ -354,6 +362,13 @@ void Server::_cmd_topic(Client* client, const std::vector<std::string>& params)
 
 void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
 {
+
+	if (client->get_status() != registered)
+	{
+		client->append_response_buffer("451 * :You have not registered\r\n");
+		return;
+	}
+
 	// Check for enough parameters
 	if (params.size() < 2)
 	{
@@ -411,20 +426,26 @@ void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
 
 void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 {
-	if (params.size() < 2)
+
+
+	if (client->get_status() != registered)
 	{
-		client->append_response_buffer("461 " + client->get_nickname() + " KICK :Not enough parameters\r\n");
+		client->append_response_buffer("451 * :You have not registered\r\n");
 		return;
 	}
+	
+    if (params.size() < 2)
+    {
+        client->append_response_buffer("461 " + client->get_nickname() + " KICK :Not enough parameters\r\n");
+        return;
+    }
 
-	std::string channel_name = params[0];
-	std::string target_nickname = params[1];
-	std::string reason = "No reason specified";
+    std::string channel_name = params[0];
+    std::string target_nickname = params[1];
+    std::string reason = "No reason specified";
 
-
-	if (params.size() <= 3)
-		reason = params[2];
-		std::cout << "REASON  " << reason << std::endl;
+    if (params.size() >= 3)
+        reason = params[2];
 	// Check if the client is an operator of the channel
 	if (!_name_to_channel.count(channel_name))
 	{
