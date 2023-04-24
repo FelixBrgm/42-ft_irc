@@ -30,6 +30,7 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 		{
 			// Create the channel if it doesn't exist
 			_name_to_channel[channel_name] = Channel(channel_name);
+			_name_to_channel[channel_name].set_password(key);
 			// Grant operator status to the creator
 			_name_to_channel[channel_name].add_operator(client->get_nickname());
 		}
@@ -431,7 +432,6 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 
 	if (params.size() <= 3)
 		reason = params[2];
-		std::cout << "REASON  " << reason << std::endl;
 	// Check if the client is an operator of the channel
 	if (!_name_to_channel.count(channel_name))
 	{
