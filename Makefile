@@ -1,63 +1,32 @@
-# NAME=miniRT
-# CC=g++
+NAME = ircserv
 
-# LFLAGS=-ldl -L$(HOME)/goinfre/.brew/Cellar/glfw/3.3.8/lib -lglfw -pthread -lm 
+CC = g++
+CFLAGS = -Wall -Wextra -Werror
 
+SRC_DIR = ./src/
+INC_DIR = ./inc/
+SERVER_DIR = $(SRC_DIR)server/
 
-# MLX=libmlx42.a
+SRC_FILES = Channel.cpp Client.cpp main.cpp
+SERVER_FILES = Server.cpp channel_management.cpp login.cpp parser.cpp runtime.cpp user_management.cpp utils.cpp
 
-# inputsources=input_check_element.c input_check_element2.c input_utils.c input.c ft_atod.c in_range.c get_field.c get_scene.c get_objects.c scene_settings.c alloc_mem.c \
+SRCS = $(addprefix $(SRC_DIR), $(SRC_FILES)) $(addprefix $(SERVER_DIR), $(SERVER_FILES))
+OBJS = $(SRCS:.cpp=.o)
 
-# utilitysources=long_atoi.c ft_isalpha.c ft_split.c ft_strlen.c ft_strcmp.c ft_substr.c ft_calloc.c ft_bzero.c get_next_line_utils.c get_next_line.c \
-#         ft_isdigit.c ft_strncmp.c free_1.c ft_free_split_void.c ft_memset.c ft_objnew.c ft_objsfree.c ft_objadd_back.c ft_objat.c ft_lstsize.c d_nearly_equal.c\
+all: $(NAME)
 
-# vectorsources=vecoperations1.c vecoperations2.c vecoperations3.c print_utils.c\
+$(NAME): $(OBJS)
+	$(CC) $(CFLAGS) -I$(INC_DIR) -o $@ $^
 
-# rendersources=main.c obj_intersection.c hook.c light_ray.c cylinder_intersection.c color_calcs.c move_by_vec_ratio.c hittable_utils.c obj_intersection2.c\
+%.o: %.cpp
+	$(CC) $(CFLAGS) -I$(INC_DIR) -o $@ -c $<
 
-# objectsources=object_matrix.c get_obj_position.c get_surface_normal.c\
+clean:
+	rm -f $(OBJS)
 
-# inputsourcespath=$(addprefix ./input/, $(inputsources))
-# utilitsourcesspath=$(addprefix ./utility/, $(utilitysources))
-# vectorsourcespath=$(addprefix ./vector/, $(vectorsources))
-# rendersourcespath=$(addprefix ./render/, $(rendersources))
-# objectsourcespath=$(addprefix ./objects/, $(objectsources))
+fclean: clean
+	rm -f $(NAME)
 
+re: fclean all
 
-SOURCES := $(shell find . -type f -name "*.cpp")
-
-# inputobjs=$(inputsources:.c=.o)
-# utilityobjs=$(utilitysources:.c=.o)
-# renderobjs=$(rendersources:.c=.o)
-# vectorobjs=$(vectorsources:.c=.o)
-# objectobjs=$(objectsources:.c=.o)
-
-# inputobjspath=$(inputsourcespath:.c=.o)
-# utilityobjspath=$(utilitsourcesspath:.c=.o)
-# vectorobjspath=$(vectorsourcespath:.c=.o)
-# renderobjspath=$(rendersourcespath:.c=.o)
-# objectobjspath=$(objectsourcespath:.c=.o)
-
-all: test
-
-# $(NAME): $(inputobjspath) $(utilityobjspath) $(vectorobjspath) $(renderobjspath) $(objectobjspath)
-#         cd ./MLX42 && make
-#         mv ./MLX42/$(MLX) .
-#         $(CC) $(CFLAGS) $(inputobjspath) $(utilityobjspath) $(vectorobjspath) $(renderobjspath) $(objectobjspath) $(MLX) -o $(NAME) $(LFLAGS)
-
-# clean:
-#         cd ./MLX42 && make clean
-#         rm -rf $(inputobjspath) $(utilityobjspath) $(vectorobjspath) $(renderobjspath) $(objectobjspath)
-
-# debug:
-#         cd ./MLX42 && make
-#         mv ./MLX42/$(MLX) .
-#         $(CC) $(CFLAGS) -g $(inputsourcespath) $(utilitsourcesspath) $(vectorsourcespath) $(rendersourcespath) $(objectsourcespath) $(MLX) -o $(NAME) $(LFLAGS)
-
-
-# fclean: clean
-#         rm -rf $(MLX)
-#         rm -rf $(NAME)
-#         rm -rf minirt.dSYM
-test:
-	g++ -Wall -Werror -Wextra $(SOURCES) && echo "STARTED" && ./a.out 4000 a
+.PHONY: all clean fclean re
