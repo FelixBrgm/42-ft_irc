@@ -13,7 +13,8 @@ SERVER_FILES = Server.cpp channel_management.cpp login.cpp parser.cpp runtime.cp
 SRCS = $(addprefix $(SRC_DIR), $(SRC_FILES)) $(addprefix $(SERVER_DIR), $(SERVER_FILES))
 OBJS = $(SRCS:.cpp=.o)
 
-all: $(NAME)
+all: 
+	$(MAKE) -j $(NAME)
 
 $(NAME): $(OBJS)
 	$(CC) $(CFLAGS) -I$(INC_DIR) -o $@ $^
