@@ -1,7 +1,5 @@
 #include "../../inc/Server.hpp"
 
-#include <iostream>
-
 void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 {
 
@@ -83,6 +81,18 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 	}
 }
 
+void remove_duplicates(std::vector<std::string>& vec) {
+	for (size_t i = 0; i < vec.size(); ++i) {
+		for (size_t j = i + 1; j < vec.size();) {
+			if (vec[i] == vec[j]) {
+				vec.erase(vec.begin() + j);
+			} else {
+				++j;
+			}
+		}
+	}
+}
+
 void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params)
 {
 
@@ -98,6 +108,7 @@ void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params
 		return;
 	}	
 	std::vector<std::string> target_names = _split_str(params[0], ',');
+	remove_duplicates(target_names);
 	std::string message = params[1];
 	for (size_t i = 0; i < target_names.size(); i++)
 	{
@@ -195,8 +206,8 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 	if (params.size() == 1)
 	{
 		std::string mode_str = channel.get_mode_string(); // Assuming you have a get_mode_string function in your Channel class
-        client->append_response_buffer("324 " + client->get_nickname() + " " + channel_name + " " + mode_str + "\r\n");
-        return;
+		client->append_response_buffer("324 " + client->get_nickname() + " " + channel_name + " " + mode_str + "\r\n");
+		return;
 	}
 
 
@@ -212,142 +223,142 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 
 	std::string mode_string = params[1];
 
-    size_t param_idx = 1;
+	size_t param_idx = 1;
 
-    while (param_idx < params.size()) {
-        std::string mode_string = params[param_idx++];
-        bool set_mode = true;
+	while (param_idx < params.size()) {
+		std::string mode_string = params[param_idx++];
+		bool set_mode = true;
 
-        for (size_t i = 0; i < mode_string.length(); ++i)
-        {
-            char mode_char = mode_string[i];
+		for (size_t i = 0; i < mode_string.length(); ++i)
+		{
+			char mode_char = mode_string[i];
 
-            if (mode_char == '+' || mode_char == '-')
-            {
-                set_mode = (mode_char == '+');
-            }
-            else
-            {
-                switch (mode_char)
-                {
-                    case 'i':
-                        channel.set_is_invite_only(set_mode);
+			if (mode_char == '+' || mode_char == '-')
+			{
+				set_mode = (mode_char == '+');
+			}
+			else
+			{
+				switch (mode_char)
+				{
+					case 'i':
+						channel.set_is_invite_only(set_mode);
 						_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+i" : "-i") + "\r\n", true);
-                        break;
-                    case 't':
-                        channel.set_topic_restricted(set_mode);
+						break;
+					case 't':
+						channel.set_topic_restricted(set_mode);
 						_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+t" : "-t") + "\r\n", true);
-                        break;
-                    case 'k':
-                        if (param_idx < params.size())
-                        {
-                            channel.set_password(set_mode ? params[param_idx++] : "");
-                        }
-                        else
-                        {
+						break;
+					case 'k':
+						if (param_idx < params.size())
+						{
+							channel.set_password(set_mode ? params[param_idx++] : "");
+						}
+						else
+						{
 							client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
-                            return;
-                        }
+							return;
+						}
 						_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+k" : "-k") + " " + (set_mode ? channel.get_password() : "") + "\r\n", true);
-                        break;
-                    case 'o':
-                		if (param_idx < params.size())
-                		{
-                		    std::string target_nickname = params[param_idx++];
+						break;
+					case 'o':
+						if (param_idx < params.size())
+						{
+							std::string target_nickname = params[param_idx++];
 							Client* target_client = _find_client_by_nickname(target_nickname);
-                		    if (target_client)
-                		    {
+							if (target_client)
+							{
 								if (set_mode)
 									channel.add_operator(target_nickname);
 								else
 									channel.remove_operator(target_nickname);
 								_send_message_to_channel_members(target_client, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+o" : "-o") + " " + target_nickname + "\r\n", true);
-                		    }
-                		    else
-                		    {
-                		        client->append_response_buffer("401 " + client->get_nickname() + " " + target_nickname + " :No such nick\r\n");
-                		    }
-                		}
-                		else
-                		{
+							}
+							else
+							{
+								client->append_response_buffer("401 " + client->get_nickname() + " " + target_nickname + " :No such nick\r\n");
+							}
+						}
+						else
+						{
 							client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
-                		}
-                		break;
-                    case 'l':
-                        if (set_mode && param_idx < params.size())
-                        {
-                            channel.set_user_limit(std::stoi(params[param_idx++]));
+						}
+						break;
+					case 'l':
+						if (set_mode && param_idx < params.size())
+						{
+							channel.set_user_limit(std::stoi(params[param_idx++]));
 							_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " +l " + std::to_string(channel.get_user_limit()) + "\r\n", true);
-                        }
-                        else if (!set_mode)
-                        {
-                            channel.set_user_limit(0);
+						}
+						else if (!set_mode)
+						{
+							channel.set_user_limit(0);
 							_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " -l\r\n", true);
-                        }
-                        else
-                        {
-     						client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
-                            return;
-                        }
-                        break;
-                    default:
-                        client->append_response_buffer("472 " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
-                        break;
-                }
-            }
-        }
+						}
+						else
+						{
+	 						client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
+							return;
+						}
+						break;
+					default:
+						client->append_response_buffer("472 " + client->get_nickname() + " " + std::string(1, mode_char) + " :is unknown mode char to me\r\n");
+						break;
+				}
+			}
+		}
 }}
 
 void Server::_cmd_topic(Client* client, const std::vector<std::string>& params)
 {
-    // Check if channel is given
-    if (params.size() < 1)
-    {
-        client->append_response_buffer("461 " + client->get_nickname() + " INVITE :Not enough parameters\r\n");
-        return;
-    }
+	// Check if channel is given
+	if (params.size() < 1)
+	{
+		client->append_response_buffer("461 " + client->get_nickname() + " INVITE :Not enough parameters\r\n");
+		return;
+	}
 
-    std::string target_channel_name = params[0];
+	std::string target_channel_name = params[0];
 
-    // Check if target_channel exists
-    if (_name_to_channel.find(target_channel_name) == _name_to_channel.end())
-    {
-        client->append_response_buffer("403 * " + target_channel_name + " :No such channel\r\n");
-        return;
-    }
+	// Check if target_channel exists
+	if (_name_to_channel.find(target_channel_name) == _name_to_channel.end())
+	{
+		client->append_response_buffer("403 * " + target_channel_name + " :No such channel\r\n");
+		return;
+	}
 
-    Channel& target_channel = _name_to_channel[target_channel_name];
+	Channel& target_channel = _name_to_channel[target_channel_name];
 
-    // Check if executing user is on channel
-    if (!target_channel.contains_client(client))
-    {
-        client->append_response_buffer("442 * " + target_channel_name + " :You're not on that channel\r\n");
-        return;
-    }
+	// Check if executing user is on channel
+	if (!target_channel.contains_client(client))
+	{
+		client->append_response_buffer("442 * " + target_channel_name + " :You're not on that channel\r\n");
+		return;
+	}
 
-    // When params is one you want to get the topic
-    if (params.size() == 1)
-    {
-        if (target_channel.get_topic() == std::string(""))
-        {
-            client->append_response_buffer("331 " + target_channel_name + " :No topic is set\r\n");
-        }
-        else
-        {
-            client->append_response_buffer("332 " + target_channel_name + " :" + target_channel.get_topic() + "\r\n");
-        }
-        return;
-    }
+	// When params is one you want to get the topic
+	if (params.size() == 1)
+	{
+		if (target_channel.get_topic() == std::string(""))
+		{
+			client->append_response_buffer("331 " + target_channel_name + " :No topic is set\r\n");
+		}
+		else
+		{
+			client->append_response_buffer("332 " + target_channel_name + " :" + target_channel.get_topic() + "\r\n");
+		}
+		return;
+	}
 
-    // Check if operator permissions are needed && if ther are check if the executing user has them
-    if (target_channel.get_is_topic_only_changeable_by_operators() && !target_channel.is_operator(client->get_nickname()))
-    {
+	// Check if operator permissions are needed && if ther are check if the executing user has them
+	if (target_channel.get_is_topic_only_changeable_by_operators() && !target_channel.is_operator(client->get_nickname()))
+	{
 		client->append_response_buffer("482 " + target_channel_name + " :You're not channel operator\r\n");
-        return;
-    }
+		return;
+	}
 
-    std::string topic = params[1];
-    target_channel.set_topic(topic);
+	std::string topic = params[1];
+	target_channel.set_topic(topic);
 	_send_message_to_channel_members(client, &target_channel, ":" + client->get_nickname() + " TOPIC " + target_channel_name + " :" + target_channel.get_topic() + "\r\n", true);
 }
 
@@ -372,7 +383,6 @@ void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
 
 	// Check if executing user is on channel
 	Channel& target_channel = _name_to_channel[target_channel_name];
-	std::cout << "channelname|" << target_channel.get_names_list() << std::endl;
 	if (!target_channel.contains_client(client))
 	{
 		client->append_response_buffer("442 " + client->get_nickname() + " :You're not on that channel\r\n");

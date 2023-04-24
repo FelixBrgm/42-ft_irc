@@ -87,9 +87,10 @@ bool Server::_is_valid_nickname(const std::string& nickname)
 	// valid nickname
 	return true;
 }
-
+#include <iostream>
 void Server::_disconnect_client(Client* client, std::string quit_message)
 {
+	std::cout << "unexpected dc" << std::endl;
 	// Send a quit message to all channels the client is in + remove client from all channels it is in
 	std::string quit_msg = ":" + client->get_nickname() + "!~" + client->get_username() + " QUIT :" + quit_message + "\r\n";
 	_broadcast_to_all_joined_channels(client, quit_msg);
@@ -102,6 +103,8 @@ void Server::_disconnect_client(Client* client, std::string quit_message)
 		if (it != _taken_usernames.end())
 			_taken_usernames.erase(it);
 	}
+
+	
 
 	// Remove the client from the _fd_to_client map
 	_fd_to_client.erase(client_fd);
