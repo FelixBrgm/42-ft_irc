@@ -1,6 +1,8 @@
 #include "../inc/Channel.hpp"
 
 #include <algorithm>
+#include <sstream>
+#include <string>
 
 Channel::Channel() {};
 Channel::Channel(std::string name) : _name(name), _user_limit(0), _is_invite_only(false), _is_topic_only_changeable_by_operators(false) {};
@@ -197,16 +199,20 @@ void Channel::set_topic(const std::string &topic)
 
 std::string Channel::get_mode_string() const
 {
-    std::string mode_str = "+";
+	std::string mode_str = "+";
 
-    if (get_is_invite_only())
-        mode_str += "i";
-    if (get_is_topic_only_changeable_by_operators())
-        mode_str += "t";
-    if (!get_password().empty())
-        mode_str += "k " + get_password() + " ";
-    if (get_user_limit())
-        mode_str += "l " + std::to_string(get_user_limit());
+	if (get_is_invite_only())
+		mode_str += "i";
+	if (get_is_topic_only_changeable_by_operators())
+		mode_str += "t";
+	if (!get_password().empty())
+		mode_str += "k " + get_password() + " ";
+	if (get_user_limit())
+	{
+		std::stringstream ss;
+		ss << get_user_limit();
+		mode_str += "l " + ss.str();
+	}
 
-    return mode_str;
+	return mode_str;
 }

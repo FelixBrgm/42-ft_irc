@@ -52,7 +52,7 @@ Client* Server::_find_client_by_nickname(const std::string& nickname)
 			return &(it->second);
 		}
 	}
-	return nullptr;
+	return NULL;
 }
 
 std::vector<std::string> Server::_split_str(const std::string& str, char delimiter)
@@ -71,7 +71,14 @@ std::vector<std::string> Server::_split_str(const std::string& str, char delimit
 
 bool Server::_username_already_exists(const std::string& nickname)
 {
-	return std::find(_taken_usernames.begin(), _taken_usernames.end(), nickname) != _taken_usernames.end();
+	for (std::vector<std::string>::const_iterator it = _taken_usernames.begin(); it != _taken_usernames.end(); ++it)
+	{
+		if (*it == nickname)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool Server::_is_valid_nickname(const std::string& nickname)
@@ -110,9 +117,15 @@ void Server::_disconnect_client(Client* client, std::string quit_message)
 	int client_fd = client->get_fd();
 	if (client->get_nickname().size() != 0)
 	{
-		std::vector<std::string>::iterator it = std::find(_taken_usernames.begin(), _taken_usernames.end(), _fd_to_client[client_fd].get_nickname());
-		if (it != _taken_usernames.end())
-			_taken_usernames.erase(it);
+		std::string nickname = _fd_to_client[client_fd].get_nickname();
+		for (std::vector<std::string>::iterator it = _taken_usernames.begin(); it != _taken_usernames.end(); ++it)
+		{
+			if (*it == nickname)
+			{
+				_taken_usernames.erase(it);
+				break;
+			}
+		}
 	}
 
 	

@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <cstdlib>
 
 bool	valid_arguments(int argc, char *argv[])
 {
@@ -17,7 +18,7 @@ bool	valid_arguments(int argc, char *argv[])
 		std::cerr << "Port Number Has To Be Numbers Only" << std::endl;
 		return 0;
 	}
-	int			port = std::atoi(port_num.c_str());
+	int			port = atoi(port_num.c_str());
 	if (port < 1024 || 65536 < port)
 	{
 		std::cerr << "Port Number Has To Be In Range [1024, 65546]" << std::endl;
@@ -33,7 +34,7 @@ int main(int argc, char* argv[])
 	std::cout << argv[1] << std::endl;
 	std::cout << argv[2] << std::endl;
 
-	Server server(std::stoi(std::string(argv[1])), std::string(argv[2]));
+	Server server(atoi(argv[1]), std::string(argv[2]));
 
 	server.run();
 

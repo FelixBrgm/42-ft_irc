@@ -1,5 +1,8 @@
 #include "../../inc/Server.hpp"
 
+#include <vector>
+#include <string>
+#include <algorithm>
 void	Server::_cmd_pass(Client* client, std::vector<std::string> params)
 {
 	if (client->get_status() != pass)

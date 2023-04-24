@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <errno.h>
 
 void	Server::_parse(int fd)
 {
@@ -89,16 +90,16 @@ void	Server::_parse(int fd)
 		}
 
 		// Remove trailing \r from the last parameter
-		if (!params.empty() && !params.back().empty() && params.back().back() == '\r')
+		if (!params.empty() && !params[params.size() - 1].empty() && params[params.size() - 1][params[params.size() - 1].size() - 1] == '\r')
 		{
-			params.back().pop_back();
+			params[params.size() - 1].resize(params[params.size() - 1].size() - 1);
 		}
 
 		std::cout << "PARAMS" << std::endl;
-	    for (size_t i = 0; i < params.size(); ++i)
+		for (size_t i = 0; i < params.size(); ++i)
 		{
-        	std::cout << "|" << params[i] << "|" << std::endl;
-    	}
+			std::cout << "|" << params[i] << "|" << std::endl;
+		}
 		std::cout << "END" << std::endl;
 
 

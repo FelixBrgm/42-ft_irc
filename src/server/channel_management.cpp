@@ -1,4 +1,7 @@
 #include "../../inc/Server.hpp"
+#include <cstdlib>
+#include <sstream>
+#include <string>
 
 void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 {
@@ -146,7 +149,7 @@ void Server::_cmd_privmsg(Client* client, const std::vector<std::string>& params
 		else
 		{
 			Client* target_client = _find_client_by_nickname(target_name);
-			if (target_client == nullptr)
+			if (target_client == NULL)
 			{
 				client->append_response_buffer("401 " + client->get_nickname() + " " + target_name + " :No such nick\r\n");
 				return;
@@ -288,8 +291,11 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
                     case 'l':
                         if (set_mode && param_idx < params.size())
                         {
-                            channel.set_user_limit(std::atoi(params[param_idx++].c_str()));
-							_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " +l " + std::to_string(channel.get_user_limit()) + "\r\n", true);
+                            channel.set_user_limit(atoi(params[param_idx++].c_str()));
+							std::stringstream ss;
+							ss << channel.get_user_limit();
+							std::string user_limit_string = ss.str();
+							_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " +l " + user_limit_string + "\r\n", true);
 						}
 						else if (!set_mode)
 						{
@@ -414,7 +420,7 @@ void Server::_cmd_invite(Client* client, const std::vector<std::string>& params)
 
 	// Check if target_nickname exists
 	Client* target_client = _find_client_by_nickname(target_nickname);
-	if (target_client == nullptr)
+	if (target_client == NULL)
 	{
 		client->append_response_buffer("401 " + target_nickname + " :No such nick/channel\r\n");
 		return;
@@ -454,13 +460,8 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
     std::string target_nickname = params[1];
     std::string reason = "No reason specified";
 
-<<<<<<< HEAD
     if (params.size() >= 3)
         reason = params[2];
-=======
-	if (params.size() <= 3)
-		reason = params[2];
->>>>>>> 5ad88d0d02fa7a291ed789e3ffec7b816a3cd758
 	// Check if the client is an operator of the channel
 	if (!_name_to_channel.count(channel_name))
 	{
@@ -477,7 +478,7 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 
 	// Check if the target user is in the channel
 	Client* target_client = _find_client_by_nickname(target_nickname);
-	if (target_client == nullptr || !channel.contains_client(target_client))
+	if (target_client == NULL || !channel.contains_client(target_client))
 	{
 		client->append_response_buffer("441 " + client->get_nickname() + " " + target_nickname + " " + channel_name + " :They aren't on that channel\r\n");
 		return;

@@ -2,11 +2,13 @@
 
 #include <fcntl.h>
 #include <iostream>
+#include <cstring>
+#include <errno.h>
 
 void Server::run()
 {
 	struct sockaddr_in	_listener_socket_addr;
-	std::memset(&_listener_socket_addr, 0, sizeof(_listener_socket_addr));
+	memset(&_listener_socket_addr, 0, sizeof(_listener_socket_addr));
 
 	// Set attributes of the socket
 	_listener_socket_addr.sin_port = htons(_port);
