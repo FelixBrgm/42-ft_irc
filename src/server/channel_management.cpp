@@ -27,6 +27,7 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 	{
 		const std::string& channel_name = channels[i];
 		std::string key = i < keys.size() ? keys[i] : "";
+
 		if (_name_to_channel.find(channel_name) == _name_to_channel.end())
 		{
 			// Create the channel if it doesn't exist
@@ -57,6 +58,12 @@ void Server::_cmd_join(Client* client, const std::vector<std::string>& params)
 		if (channel.get_is_invite_only() && !channel.is_invited(client->get_nickname()))
 		{
 			client->append_response_buffer("473 * " + channel_name + " :Cannot join channel (+i)\r\n");
+			return;
+		}
+
+		if (channel.get_password() != "" && key != "x" && key != channel.get_password())
+		{
+			client->append_response_buffer("475 * " + channel_name + " :Cannot join channel (+k)\r\n");
 			return;
 		}
 		
