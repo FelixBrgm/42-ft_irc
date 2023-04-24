@@ -3,8 +3,6 @@
 #include <sstream>
 #include <unistd.h>
 
-
-
 void Server::_broadcast_to_all_joined_channels(Client *client, const std::string& message)
 {
 	std::map<std::string, Channel*> joined_channels = client->get_joined_channels();
@@ -15,12 +13,13 @@ void Server::_broadcast_to_all_joined_channels(Client *client, const std::string
 	}
 }
 
-void Server::_broadcast_to_all_clients_on_server(const std::string& message)
+void Server::_broadcast_to_all_clients_on_server(Client *sending_client, const std::string& message, bool send_to_client_himself)
 {
 	for (std::map<int, Client>::iterator it = _fd_to_client.begin(); it != _fd_to_client.end(); ++it)
 	{
 		Client* client = &(it->second);
-		client->append_response_buffer(message);
+		if (send_to_client_himself || client != sending_client)
+			client->append_response_buffer(message);
 	}
 }
 

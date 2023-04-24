@@ -131,7 +131,6 @@ std::string Channel::get_names_list()
 			names_list += " ";
 		}
 	}
-
 	return names_list;
 }
 

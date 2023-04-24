@@ -151,5 +151,4 @@ void	Server::_parse(int fd)
 			client.append_response_buffer(std::string("421") + std::string(" * ") + command + std::string(" :Unknown command\r\n"));
 		}
 	}
-	
 }

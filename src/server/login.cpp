@@ -51,7 +51,6 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 		client->append_response_buffer("433 * " + new_nickname + " :Nickname is already in use\r\n");
 		return;
 	}
-
 	// Update the client's nickname
 	std::string old_nickname = client->get_nickname();
 	client->set_nickname(new_nickname);
@@ -70,7 +69,7 @@ void	Server::_cmd_nick(Client* client, std::vector<std::string> params)
 	{
 		// Notify other users in the same channels about the nickname change
 		std::string nick_change_msg = ":" + old_nickname + " NICK " + new_nickname + "\r\n";
-		_broadcast_to_all_clients_on_server(nick_change_msg);
+		_broadcast_to_all_clients_on_server(client, nick_change_msg, false);
 		return;
 	}
 
