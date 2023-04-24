@@ -92,7 +92,11 @@ void Server::_event_loop()
 
 		for (int i = 0; i < _nfds; i++)
 		{
-			Client& client = _fd_to_client[_pollfds[i].fd];
+			std::map<int, Client>::iterator it = _fd_to_client.find(_pollfds[i].fd);
+			if (it == _fd_to_client.end())
+				continue;
+
+    		Client& client = it->second;
 
 			if (!client.is_response_complete())
 				continue;
@@ -106,6 +110,7 @@ void Server::_event_loop()
 
 void Server::_accept_new_connection()
 {
+	std::cout << "ACCEPT NEW CONNECTION" << std::endl;
 	while (true)
 	{
 		int new_socket_fd = accept(_pollfds[0].fd, NULL, NULL);

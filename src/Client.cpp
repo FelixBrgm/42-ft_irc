@@ -93,7 +93,7 @@ void Client::set_realname(std::string& realname)
 // Buffer Operations
 void Client::append_response_buffer(std::string buffer)
 {
-	std::cout << "out: " << buffer;
+	std::cout << "out - " << _nickname <<  ": " << buffer;
 	_response_buffer += buffer;
 }
 

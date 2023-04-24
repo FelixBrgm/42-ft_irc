@@ -13,13 +13,12 @@ void Server::_broadcast_to_all_joined_channels(Client *client, const std::string
 	}
 }
 
-void Server::_broadcast_to_all_clients_on_server(Client *sending_client, const std::string& message, bool send_to_client_himself)
+void Server::_broadcast_to_all_clients_on_server(const std::string& message)
 {
 	for (std::map<int, Client>::iterator it = _fd_to_client.begin(); it != _fd_to_client.end(); ++it)
 	{
 		Client* client = &(it->second);
-		if (send_to_client_himself || client != sending_client)
-			client->append_response_buffer(message);
+		client->append_response_buffer(message);
 	}
 }
 
