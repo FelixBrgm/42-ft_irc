@@ -53,6 +53,8 @@ class Server
 		// user management
 		void						_cmd_ping(Client* client, std::vector<std::string> params);
 		void 						_cmd_quit(Client* client, const std::vector<std::string>& params = std::vector<std::string>());
+		void						_cmd_who(Client* client, const std::vector<std::string>& params);
+		void						_cmd_cap(Client* client, const std::vector<std::string>& params);
 
 		// channel management
 		void						_cmd_join(Client* client, const std::vector<std::string>& params);

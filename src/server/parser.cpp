@@ -111,29 +111,11 @@ void	Server::_parse(int fd)
 		else if (command == std::string("PING"))
 			_cmd_ping(&client, params);
 		else if (command == std::string("CAP"))
-		{
-			if (params.size() > 0)
-			{
-				if (params[0] == "LS")
-				{
-					client.append_response_buffer("CAP * LS :\r\n");
-				}
-				else if (params[0] == "END")
-				{
-					// Do nothing, CAP negotiation has ended
-				}
-				else
-				{
-					client.append_response_buffer("421 * CAP :Unknown command\r\n");
-				}
-			}
-			else
-			{
-				client.append_response_buffer("421 * CAP :Unknown command\r\n");
-			}
-		}
+			_cmd_cap(&client, params);
 		else if (command == std::string("JOIN"))
 			_cmd_join(&client, params);
+		else if (command == std::string("WHO"))
+			_cmd_who(&client, params);
 		else if (command == std::string("PRIVMSG"))
 			_cmd_privmsg(&client, params);
 		else if (command == std::string("QUIT"))

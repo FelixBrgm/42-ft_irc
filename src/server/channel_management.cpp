@@ -218,9 +218,6 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 	}
 
 
-
-
-
 	std::string mode_string = params[1];
 
 	size_t param_idx = 1;
@@ -260,11 +257,12 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 							return;
 						}
 						_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " " + (set_mode ? "+k" : "-k") + " " + (set_mode ? channel.get_password() : "") + "\r\n", true);
-						break;
-					case 'o':
-						if (param_idx < params.size())
-						{
-							std::string target_nickname = params[param_idx++];
+						param_idx++;
+                        break;
+                    case 'o':
+                		if (param_idx < params.size())
+                		{
+                		    std::string target_nickname = params[param_idx++];
 							Client* target_client = _find_client_by_nickname(target_nickname);
 							if (target_client)
 							{
@@ -282,12 +280,12 @@ void Server::_cmd_channel_mode(Client* client, const std::vector<std::string>& p
 						else
 						{
 							client->append_response_buffer("461 " + client->get_nickname() + " MODE :Not enough parameters\r\n");
-						}
-						break;
-					case 'l':
-						if (set_mode && param_idx < params.size())
-						{
-							channel.set_user_limit(std::stoi(params[param_idx++]));
+                		}
+                		break;
+                    case 'l':
+                        if (set_mode && param_idx < params.size())
+                        {
+                            channel.set_user_limit(std::atoi(params[param_idx++].c_str()));
 							_send_message_to_channel_members(NULL, &channel, ":" + client->get_nickname() + " MODE " + channel_name + " +l " + std::to_string(channel.get_user_limit()) + "\r\n", true);
 						}
 						else if (!set_mode)
@@ -428,8 +426,12 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 
 	std::string channel_name = params[0];
 	std::string target_nickname = params[1];
-	std::string reason = params.size() > 2 ? params[2] : "No reason specified";
+	std::string reason = "No reason specified";
 
+
+	if (params.size() <= 3)
+		reason = params[2];
+		std::cout << "REASON  " << reason << std::endl;
 	// Check if the client is an operator of the channel
 	if (!_name_to_channel.count(channel_name))
 	{
@@ -455,9 +457,7 @@ void Server::_cmd_kick(Client* client, const std::vector<std::string>& params)
 	// Notify all users joined in the channel user
 	std::string kick_msg = ":" + client->get_nickname() + " KICK " + channel_name + " " + target_nickname + " :" + reason + "\r\n";
 	_send_message_to_channel_members(target_client, &channel, kick_msg, true);
-	target_client->append_response_buffer(kick_msg);
 
 	// Remove the target user from the channel
 	channel.remove_client(target_client);
-	channel.remove_operator(target_client->get_nickname());
 }
