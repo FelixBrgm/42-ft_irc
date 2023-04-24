@@ -17,7 +17,7 @@ bool	valid_arguments(int argc, char *argv[])
 		std::cerr << "Port Number Has To Be Numbers Only" << std::endl;
 		return 0;
 	}
-	int			port = std::stoi(port_num);
+	int			port = std::atoi(port_num.c_str());
 	if (port < 1024 || 65536 < port)
 	{
 		std::cerr << "Port Number Has To Be In Range [1024, 65546]" << std::endl;
